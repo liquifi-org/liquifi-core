@@ -1,0 +1,49 @@
+{
+  "name": "liquifi-core",
+  "version": "1.0.0",
+  "description": "Liquifi Smart Contracts",
+  "main": "index.js",
+  "scripts": {
+    "gas-report": "buidler node > /dev/null & env REPORT_GAS=true buidler test --network localhost ./test/gas-report/*.test.ts",
+    "test": "buidler test ./test/*.test.ts" ,
+    "typechain": "typechain --target=ethers-v5 --outDir typechain 'artifacts/*.json'",
+    "clean": "buidler clean && rm -rf typechain coverage cache",
+    "compile": "buidler compile --show-stack-traces",
+    "coverage": "npx buidler coverage --temp artifacts --network coverage",
+    "deploy": "npx buidler run --network rinkeby scripts/deploy.ts",
+    "deploy_1": "npx buidler run --network mainnet scripts/deploy.ts",
+    "deploy_3": "npx buidler run --network ropsten scripts/deploy.ts",
+    "deploy_4": "npx buidler run --network rinkeby scripts/deploy.ts",
+    "size": "buidler size-contracts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:liquifi-org/liquifi-core.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomiclabs/buidler": "^1.4.3",
+    "@nomiclabs/buidler-ethers": "^2.0.0",
+    "@nomiclabs/buidler-waffle": "^2.0.0",
+    "@typechain/ethers-v5": "^1.0.0",
+    "@types/chai": "^4.2.12",
+    "@types/mocha": "^8.0.1",
+    "@types/node": "^14.0.27",
+    "buidler-gas-reporter": "^0.1.3",
+    "buidler-typechain": "^0.1.1",
+    "chai": "^4.2.0",
+    "ethereum-waffle": "^3.0.2",
+    "ethers": "^5.0.8",
+    "solc": "0.7.0",
+    "solidity-coverage": "^0.7.10",
+    "ts-node": "^8.10.2",
+    "typechain": "^2.0.0",
+    "typescript": "^3.9.7"
+  },
+  "dependencies": {
+    "buidler-contract-sizer": "^1.0.2",
+    "truffle-contract-size": "^2.0.0",
+    "ts-generator": "0.0.8"
+  }
+}
