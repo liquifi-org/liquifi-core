@@ -21,7 +21,7 @@
     "url": "git@github.com:liquifi-org/liquifi-core.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "GPL-3.0",
   "devDependencies": {
     "@nomiclabs/buidler": "^1.4.3",
     "@nomiclabs/buidler-ethers": "^2.0.0",

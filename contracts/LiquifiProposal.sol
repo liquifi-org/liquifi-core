@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: ISC
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity = 0.7.0;
 
 import {LiquifiInitialGovernor} from "./LiquifiInitialGovernor.sol";
