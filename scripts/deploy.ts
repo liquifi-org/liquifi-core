@@ -5,7 +5,8 @@ import { BigNumber } from "ethers";
 async function deployGovernanceRouter(wethAddress: string) {
     const LiquifiGovernanceRouter = await ethers.getContractFactory("LiquifiGovernanceRouter");
     //var options = { gasLimit: 7000000 };
-    const miningPeriod = 7*24*60*60; // 1 week
+    //const miningPeriod = 7*24*60*60; // 1 week
+    const miningPeriod = 15*60; // 15 minutes
     const liquifiGovernanceRouter = await LiquifiGovernanceRouter.deploy(miningPeriod, wethAddress);
     await liquifiGovernanceRouter.deployed();
     console.log("LiquiFi Governance Router address:", liquifiGovernanceRouter.address);
