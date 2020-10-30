@@ -44,6 +44,9 @@ contract LiquifiMinter is LiquifiToken, Minter {
 
     function mint(address to, uint period, uint128 userEthLocked, uint totalEthLocked) external override returns (uint amount) {
         require(msg.sender == address(activityMeter), "LIQUIFI: INVALID MINT SENDER");
+        if (totalEthLocked == 0) {
+            return 0;
+        }
         amount = (uint(periodTokens(period)) * userEthLocked) / totalEthLocked;
         totalSupply = totalSupply.add(amount);
         accountBalances[to] += amount;
@@ -52,7 +55,7 @@ contract LiquifiMinter is LiquifiToken, Minter {
 
     function userTokensToClaim(address user) external view override returns (uint amount) {
         (uint ethLockedPeriod, uint userEthLocked, uint totalEthLocked) = activityMeter.userEthLocked(user);
-        if (ethLockedPeriod > 0) {
+        if (ethLockedPeriod != 0 && totalEthLocked != 0) {
             amount = (uint(periodTokens(ethLockedPeriod)) * userEthLocked) / totalEthLocked;
         }
     }

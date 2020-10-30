@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "gas-report": "buidler node > /dev/null & env REPORT_GAS=true buidler test --network localhost ./test/gas-report/*.test.ts",
-    "test": "buidler test ./test/*.test.ts" ,
+    "test": "buidler test ./test/*.test.ts",
     "typechain": "typechain --target=ethers-v5 --outDir typechain 'artifacts/*.json'",
     "clean": "buidler clean && rm -rf typechain coverage cache",
     "compile": "buidler compile --show-stack-traces",

@@ -46,13 +46,14 @@ describe("Liquifi Activity Meter", () => {
 
     beforeEach(async () => {
         [liquidityProvider, factoryOwner, otherTrader] = await ethers.getSigners() as Wallet[];
-        
+    
         tokenA = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token A", "TKA", [await otherTrader.getAddress()]]) as TestToken
         tokenB = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token B", "TKB", [await otherTrader.getAddress()]]) as TestToken
         if (BigNumber.from(tokenA.address).lt(BigNumber.from(tokenB.address))) {
             [tokenA, tokenB] = [tokenB, tokenA];
         }
         weth = tokenA;
+
         governanceRouter = await deployContract(factoryOwner, LiquifiGovernanceRouterArtifact, [60, weth.address]) as LiquifiGovernanceRouter;
         activityMeter = await deployContract(factoryOwner, LiquifiActivityMeterArtifact, [governanceRouter.address]) as LiquifiActivityMeter;
         minter = await deployContract(factoryOwner, LiquifiMinterArtifact, [governanceRouter.address]) as LiquifiMinter;
@@ -345,6 +346,43 @@ describe("Liquifi Activity Meter", () => {
         mints = await mintEvents(tx1.blockNumber);
         userEthLocked = mints.reduce((sum, mint) => sum.add(mint.args.to == userAddress ? mint.args.userEthLocked : 0), BigNumber.from(0));
         expect(userEthLocked).to.be.eq(userEthLocked7.add(userEthLocked6).add(userEthLocked5).add(userEthLocked4).add(userEthLocked3));    
+
+        //await events;
+    });
+
+    it("should allow withdraw early", async () => {
+        //const events = traceDebugEvents(activityMeter, 1);
+
+        await addLiquidity(token(1), token(100));
+        const factory = await LiquifiPoolFactoryFactory.connect(await register.factory(), factoryOwner);
+        const poolAddress = await factory.findPool(tokenA.address, tokenB.address);
+        const pool = await LiquifiDelayedExchangePoolFactory.connect(poolAddress, factoryOwner);
+        
+        await wait(1800);
+        pool.connect(liquidityProvider).approve(activityMeter.address, token(7));
+        expect(await activityMeter.connect(liquidityProvider).deposit(poolAddress, token(99).div(100))).to.be.ok;
+        expect(await activityMeter.connect(liquidityProvider).withdraw(poolAddress, token(1).div(100))).to.be.ok;
+
+        await wait(1800);
+        await activityMeter.connect(liquidityProvider).actualizeUserPools();
+
+        //await events;
+    });
+
+    it("should allow widhdraw all", async () => {
+        //const events = traceDebugEvents(activityMeter, 1);
+
+        await addLiquidity(token(1), token(100));
+        const factory = await LiquifiPoolFactoryFactory.connect(await register.factory(), factoryOwner);
+        const poolAddress = await factory.findPool(tokenA.address, tokenB.address);
+        const pool = await LiquifiDelayedExchangePoolFactory.connect(poolAddress, factoryOwner);
+        
+        pool.connect(liquidityProvider).approve(activityMeter.address, token(7));
+        expect(await activityMeter.connect(liquidityProvider).deposit(poolAddress, token(7))).to.be.ok;
+        expect(await activityMeter.connect(liquidityProvider).withdraw(poolAddress, token(7))).to.be.ok;
+
+        wait(900);
+        await activityMeter.connect(liquidityProvider).actualizeUserPools();
 
         //await events;
     });

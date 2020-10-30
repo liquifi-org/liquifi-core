@@ -167,7 +167,9 @@ contract LiquifiActivityMeter is ActivityMeter {
             (uint currentPeriod, ) = effectivePeriod(block.timestamp);
             currentEthLockedPeriod = currentPeriod - 1;
         }
+
         if (currentEthLockedPeriod > 0 && userSummary.ethLockedPeriod < currentEthLockedPeriod) {
+            
             if (userSummary.ethLockedPeriod > 0) {
                 mintedAmount = governanceRouter.minter().mint(
                     user, userSummary.ethLockedPeriod, userSummary.ethLocked, ethLockedHistory[userSummary.ethLockedPeriod]
@@ -177,7 +179,6 @@ contract LiquifiActivityMeter is ActivityMeter {
             userSummary.ethLockedPeriod = uint16(currentEthLockedPeriod);
             userSummaries[user] = userSummary;
         }
-        
         uint earningPeriod = userPoolSummary.earnedForPeriod;
         if (earningPeriod >= period) {
             return (0, mintedAmount);
@@ -277,7 +278,7 @@ contract LiquifiActivityMeter is ActivityMeter {
             lastAmountLocked = lastAmountLocked.add(amount);
             require(lastAmountLocked < (1<<128), "LIQUIFY: GOV DEPOSIT OVERFLOW");
         } else {
-            require(lastAmountLocked > amount, "LIQUIFY: GOV WITHDRAW UNDERFLOW");
+            require(lastAmountLocked >= amount, "LIQUIFY: GOV WITHDRAW UNDERFLOW");
             lastAmountLocked = lastAmountLocked - amount;
         }
         
