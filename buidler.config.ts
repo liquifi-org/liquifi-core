@@ -18,11 +18,11 @@ const config: BuidlerConfig = {
     },
     networks: {
         ropsten: {
-            url: `http://node.ropsten.liquifi.org:8545`,
+            url: `http://ropsten.node.liquifi.org:8545`,
             accounts: [privateKey],
         },
         rinkeby: {
-            url: `http://node.rinkeby.liquifi.org:8545`,
+            url: `http://rinkeby.node.liquifi.org:8545`,
             accounts: [privateKey]
         },
         mainnet: {
