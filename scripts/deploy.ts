@@ -4,14 +4,12 @@ import { BigNumber } from "ethers";
 import fs from 'fs';
 
 const ADDR = {
-  'governanceRouter': null,
-  'activityMeter': null,
-  'minter': null,
-  'governor': null,
-  'register': null,
-  'factory': null
-
-
+  'governanceRouter': string,
+  'activityMeter': string,
+  'minter': string,
+  'governor': string,
+  'register': string,
+  'factory': string
 }
 
 async function deployGovernanceRouter(wethAddress: string) {
