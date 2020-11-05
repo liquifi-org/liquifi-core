@@ -84,7 +84,7 @@ async function main() {
     await deployGovernor(governanceRouter);
     await deployRegister(governanceRouter);
     try {
-      fs.writeFile('contract-addresses.json', JSON.stringify(ADDR))
+      fs.writeFile('contract-addresses.json', JSON.stringify(ADDR), { type: 'application/json' })
     } catch {
       console.log('Failed to create addresses file')
     }
