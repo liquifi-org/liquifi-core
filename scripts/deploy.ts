@@ -3,7 +3,7 @@ import { wethAddress } from "./weth";
 import { BigNumber } from "ethers";
 import fs from 'fs';
 
-const ADDR = {
+var ADDR = {
   'governanceRouter': string,
   'activityMeter': string,
   'minter': string,
