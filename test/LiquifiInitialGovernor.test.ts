@@ -70,7 +70,7 @@ describe("Liquifi Initial Governor", () => {
         await governanceToken.connect(governorOwner).approve(governor.address, token(100));
         expect((await governor.getDeployedProposals()).length).to.equal(0);
         expect(await governanceToken.connect(governorOwner).balanceOf(await governorOwner.getAddress())).to.be.equal(token(100));
-        expect(await governor.connect(governorOwner).createProposal("test", 0, 1, newGovernor.address, AddressZero)).to.be.ok;
+        expect(await governor.connect(governorOwner).createProposal("test", 1, 0, newGovernor.address, AddressZero)).to.be.ok;
 
         // Vote for the proposal
         const proposal = LiquifiProposalFactory.connect((await governor.getDeployedProposals())[0], governorOwner) as LiquifiProposal;

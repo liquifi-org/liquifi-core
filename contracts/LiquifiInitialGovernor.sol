@@ -120,7 +120,7 @@ contract LiquifiInitialGovernor {
         require(proposalInfo[proposal].status == LiquifiDAO.ProposalStatus.IN_PROGRESS, "LIQUIFI_GV: PROPOSAL FINALIZED");
 
         if (_proposalStatus == LiquifiDAO.ProposalStatus.APPROVED) {
-            if (_option ==  0) { changeGovernor(_address); }
+            if (_option == 1) { changeGovernor(_address); }
         }
 
         proposalInfo[proposal].status = _proposalStatus;   
