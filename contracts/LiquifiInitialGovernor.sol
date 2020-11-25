@@ -7,20 +7,30 @@ import {GovernanceRouter} from "./interfaces/GovernanceRouter.sol";
 import {ERC20} from "./interfaces/ERC20.sol";
 import { DelayedExchangePool } from "./interfaces/DelayedExchangePool.sol";
 import { Liquifi } from "./libraries/Liquifi.sol";
+import { Math } from "./libraries/Math.sol";
+//import { Debug } from "./libraries/Debug.sol";
 
 contract LiquifiInitialGovernor {
+    using Math for uint256;
+
     event EmergencyLock(address sender, address pool);
     event ProposalCreated(address proposal);
-    event ProposalFinalized(address proposal, LiquifiDAO.ProposalStatus proposalStatus, uint tokensRefunded);
+    event ProposalFinalized(address proposal, LiquifiDAO.ProposalStatus proposalStatus);
 
     struct CreatedProposals{
         uint amountDeposited;
         LiquifiDAO.ProposalStatus status;
         address creator;
     }
+
+    struct Deposit {
+        uint amount;
+        uint unfreezeTime;
+    }
     
     LiquifiProposal[] public deployedProposals;
     mapping(address => CreatedProposals) proposalInfo;
+    mapping(/* user */address => Deposit) public deposits;
 
     uint public immutable tokensRequiredToCreateProposal; 
     uint public constant quorum = 50; //percenrage
@@ -42,17 +52,38 @@ contract LiquifiInitialGovernor {
         }
     }
 
-    function createProposal(string memory _proposal, uint _option, uint _newValue, address _address, address _address2) public {
-        require(govToken.balanceOf(msg.sender) >= tokensRequiredToCreateProposal, "LIQUIFI_GV: LOW BALANCE");
-        require(govToken.transferFrom(msg.sender, address(this), tokensRequiredToCreateProposal), 
-            "LIQUIFI_GV: TRANSFER FAILED");
+    function deposit(address user, uint amount, uint unfreezeTime) private {
+        uint deposited = deposits[user].amount;
+        if (deposited < amount) {
+            uint remainingAmount = amount.subWithClip(deposited);
+            require(govToken.transferFrom(user, address(this), remainingAmount), "LIQUIFI_GV: TRANSFER FAILED");
+            deposits[user].amount = amount;
+        }
+        deposits[user].unfreezeTime = Math.max(deposits[user].unfreezeTime, unfreezeTime);
+    } 
 
+    function withdraw() public {
+        address user = msg.sender;
+        require(deposits[user].amount > 0, "LIQUIFI_GV: NO DEPOSIT");
+        require(deposits[user].unfreezeTime < block.timestamp, "LIQUIFI_GV: DEPOSIT FROZEN");
+        
+        uint amount = deposits[user].amount;
+        deposits[user].amount = 0;
+
+        require(govToken.transfer(user, amount), "LIQUIFI_GV: TRANSFER FAILED");
+    }
+
+    function createProposal(string memory _proposal, uint _option, uint _newValue, address _address, address _address2) public {
+        address creator = msg.sender;
         LiquifiProposal newProposal = new LiquifiProposal(_proposal, govToken.totalSupply(), address(govToken), _option, _newValue, quorum, threshold, vetoPercentage, votingPeriod, _address, _address2);
+        
+        uint tokensRequired = deposits[creator].amount.add(tokensRequiredToCreateProposal);
+        deposit(creator, tokensRequired, newProposal.endTime());
 
         deployedProposals.push(newProposal);
 
         proposalInfo[address(newProposal)].amountDeposited = tokensRequiredToCreateProposal;
-        proposalInfo[address(newProposal)].creator = msg.sender;
+        proposalInfo[address(newProposal)].creator = creator;
         emit ProposalCreated(address(newProposal));
     }
 
@@ -75,6 +106,14 @@ contract LiquifiInitialGovernor {
         return deployedProposals;
     }
 
+    function proposalVote(address user, uint influence, uint unfreezeTime) public {
+        address proposal = msg.sender;
+        require(proposalInfo[proposal].amountDeposited > 0, "LIQUIFI_GV: BAD SENDER");
+        require(proposalInfo[proposal].status == LiquifiDAO.ProposalStatus.IN_PROGRESS, "LIQUIFI_GV: PROPOSAL FINALIZED");
+
+        deposit(user, influence, unfreezeTime);
+    }
+
     function proposalFinalization(LiquifiDAO.ProposalStatus _proposalStatus, uint _option, uint /* _value */, address _address, address /* _address2 */) public {
         address proposal = msg.sender;
         require(proposalInfo[proposal].amountDeposited > 0, "LIQUIFI_GV: BAD SENDER");
@@ -85,9 +124,7 @@ contract LiquifiInitialGovernor {
         }
 
         proposalInfo[proposal].status = _proposalStatus;   
-
-        bool refunded = govToken.transfer(proposalInfo[proposal].creator, proposalInfo[proposal].amountDeposited);
-        emit ProposalFinalized(proposal, _proposalStatus, refunded ? proposalInfo[proposal].amountDeposited : 0);   
+        emit ProposalFinalized(proposal, _proposalStatus);   
     }
 
     function changeGovernor(address _newGovernor) private {

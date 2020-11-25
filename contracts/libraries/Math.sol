@@ -4,6 +4,10 @@ import { Liquifi } from "./Liquifi.sol";
 
 library Math {
     
+    function max(uint256 x, uint256 y) internal pure returns (uint256 result) {
+        result = x > y ? x : y;
+    }
+
     function min(uint256 x, uint256 y) internal pure returns (uint256 result) {
         result = x < y ? x : y;
     }
@@ -21,9 +25,9 @@ library Math {
         Liquifi._require(y == 0 || (z = x * y) / y == x, Liquifi.Error.A_MUL_OVERFLOW, Liquifi.ErrorArg.A_NONE);
     }
 
-    function mulWithClip(uint x, uint y, uint max) internal pure returns (uint z) {
-        if (y != 0 && ((z = x * y) / y != x || z > max)) {
-            z = max;
+    function mulWithClip(uint x, uint y, uint maxValue) internal pure returns (uint z) {
+        if (y != 0 && ((z = x * y) / y != x || z > maxValue)) {
+            z = maxValue;
         }
     }
 
@@ -37,9 +41,9 @@ library Math {
         Liquifi._require((z = x + y) >= x, Liquifi.Error.B_ADD_OVERFLOW, Liquifi.ErrorArg.A_NONE);
     }
 
-    function addWithClip(uint x, uint y, uint max) internal pure returns (uint z) {
-        if ((z = x + y) < x || z > max) {
-            z = max;
+    function addWithClip(uint x, uint y, uint maxValue) internal pure returns (uint z) {
+        if ((z = x + y) < x || z > maxValue) {
+            z = maxValue;
         }
     }
 

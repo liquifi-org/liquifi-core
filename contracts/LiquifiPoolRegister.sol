@@ -34,15 +34,13 @@ contract LiquifiPoolRegister is PoolRegister  {
         address from = (token == address(weth) && convertETH == ConvertETH.IN_ETH) ? address(this) : msg.sender;
 
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(
-            0x23b872dd, // bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
-        from, to, value));
+            ERC20.transferFrom.selector, from, to, value));
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'LIQUIFI: TRANSFER_FROM_FAILED');
     }
 
     function smartTransfer(address token, address to, uint value) internal {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(
-            0xa9059cbb // bytes4(keccak256(bytes('transfer(address,uint256)')));
-            , to, value));
+            ERC20.transfer.selector, to, value));
         success = success && (data.length == 0 || abi.decode(data, (bool)));
 
         require(success, "LIQUIFI: TOKEN_TRANSFER_FAILED");

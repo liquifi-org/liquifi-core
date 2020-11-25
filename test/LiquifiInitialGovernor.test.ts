@@ -75,13 +75,20 @@ describe("Liquifi Initial Governor", () => {
         // Vote for the proposal
         const proposal = LiquifiProposalFactory.connect((await governor.getDeployedProposals())[0], governorOwner) as LiquifiProposal;
         await governanceToken.connect(governanceTokenOwner).transfer(await voter.getAddress(), token(150));
-        await proposal.connect(voter).vote(1);
+        await governanceToken.connect(voter).approve(governor.address, token(150));
+        await proposal.connect(voter)["vote(uint8)"](1);
+        await proposal.connect(governorOwner)["vote(uint8,uint256)"](3, token(100));
         expect(await proposal.approvalsInfluence()).to.equal(token(150));
-   
+        expect(await governanceToken.balanceOf(await voter.getAddress())).to.be.eq(token(0));
+
+        await expect(governor.connect(voter).withdraw()).to.be.revertedWith("LIQUIFI_GV: DEPOSIT FROZEN");
+        
         // Finalize the proposal
         await wait(60*60*24*3); //3 days
         await proposal.finalize()
         expect(await proposal.result()).to.equal(1);
+        await governor.connect(voter).withdraw();
+        expect(await governanceToken.balanceOf(await voter.getAddress())).to.be.eq(token(150));
 
         // Check the new governor
         expect((await governanceRouter.governance())[0]).to.eq(newGovernor.address);

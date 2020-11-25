@@ -52,6 +52,8 @@ describe("Proposals", () => {
         await govToken.connect(signers[0]).transfer(await signers[1].getAddress(), token(50));
         await govToken.connect(signers[0]).transfer(await signers[2].getAddress(), token(100));
         await govToken.connect(signers[0]).approve(gov.address, token(100));
+        await govToken.connect(signers[1]).approve(gov.address, token(50));
+        await govToken.connect(signers[2]).approve(gov.address, token(100));
 
         //creating proposal
         await expect(await gov.connect(signers[0]).createProposal("test", 1, 1, AddressZero, AddressZero)).to.be.ok;
@@ -59,8 +61,8 @@ describe("Proposals", () => {
         let prop = (await gov.getDeployedProposals())[0];
         proposal = LiquifiProposalFactory.connect(prop, signers[5]);
 
-        await proposal.connect(signers[1]).vote(2);
-        await proposal.connect(signers[2]).vote(1);
+        await proposal.connect(signers[1])["vote(uint8)"](2);
+        await proposal.connect(signers[2])["vote(uint8)"](1);
         expect(await proposal.approvalsInfluence()).to.equal(token(100));
         expect(await proposal.againstInfluence()).to.equal(token(50));
 
@@ -78,14 +80,17 @@ describe("Proposals", () => {
         await govToken.connect(signers[0]).transfer(await signers[1].getAddress(), token(40));
         await govToken.connect(signers[0]).transfer(await signers[2].getAddress(), token(100));
         await govToken.connect(signers[0]).approve(gov.address, token(100));
+        await govToken.connect(signers[1]).approve(gov.address, token(40));
+        await govToken.connect(signers[2]).approve(gov.address, token(100));
 
         //creating proposal
         await expect(await gov.connect(signers[0]).createProposal("test", 1, 1, AddressZero, AddressZero)).to.be.ok;
         let prop = (await gov.getDeployedProposals())[0];
         proposal = LiquifiProposalFactory.connect(prop, signers[5]);
 
-        await proposal.connect(signers[1]).vote(1);
-        await proposal.connect(signers[2]).vote(2);
+        await proposal.connect(signers[1])["vote(uint8)"](1);
+        await proposal.connect(signers[2])["vote(uint8)"](2);
+        
         expect(await proposal.approvalsInfluence()).to.equal(token(40));
         expect(await proposal.againstInfluence()).to.equal(token(100));
 

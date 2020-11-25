@@ -4,14 +4,21 @@ pragma solidity = 0.7.0;
 import {LiquifiInitialGovernor} from "./LiquifiInitialGovernor.sol";
 import {LiquifiDAO} from "./libraries/LiquifiDAO.sol";
 import {ERC20} from "./interfaces/ERC20.sol";
+import { Math } from "./libraries/Math.sol";
+//import { Debug } from "./libraries/Debug.sol";
 
 contract LiquifiProposal {
-    event ProposalVoted(address user, uint vote, uint influence);
+    using Math for uint256;
+    event ProposalVoted(address user, Vote vote, uint influence);
 
     ERC20 public immutable govToken;
     LiquifiInitialGovernor public immutable governor;
 
-    mapping(address => uint8) public voted;
+    enum Vote {
+        NONE, YES, NO, ABSTAIN, NO_WITH_VETO
+    }
+
+    mapping(address => Vote) public voted;
     // 0 - hasn't voted
     // 1 - voted yes
     // 2 - voted no
@@ -61,42 +68,56 @@ contract LiquifiProposal {
         addr2 = _address2;
     }
 
-    function vote(uint _vote) public {
+    function vote(Vote _vote) public {
         address user = msg.sender;
-        require(voted[user] == 0, "You have already voted!");
-
-        voted[user] = uint8(_vote); // prevent reentrance
         uint influence = govToken.balanceOf(user);
+        (uint deposited,) = governor.deposits(user);
+        influence = influence.add(deposited);
+        vote(_vote, influence);
+    }
+
+
+    function vote(Vote _vote, uint influence) public {
+        address user = msg.sender;
+        require(voted[user] == Vote.NONE, "You have already voted!");
+
+        voted[user] = _vote; // prevent reentrance
 
         require(influence > 0, "Proposal.vote: No governance tokens in wallet");
-        require(_vote > 0 && _vote < 5, "Invalid vote option");
+        governor.proposalVote(user, influence, endTime());
 
         if (checkIfEnded() != LiquifiDAO.ProposalStatus.IN_PROGRESS)
             return;
             
-        if (_vote == 1) {
+        if (_vote == Vote.YES) {
             approvalsInfluence += influence;
-        } else if (_vote == 2) {
+        } else if (_vote == Vote.NO) {
             againstInfluence += influence;
-        } else if (_vote == 3) {
+        } else if (_vote == Vote.ABSTAIN) {
             abstainInfluence += influence;
-        } else if (_vote == 4) {
+        } else if (_vote == Vote.NO_WITH_VETO) {
             noWithVetoInfluence += influence;
             againstInfluence += influence;
         }
         emit ProposalVoted(user, _vote, influence);
     }
 
+    function endTime() public view returns (uint) {
+        return started + 1 hours * votingPeriod;
+    }
+
     function checkIfEnded() public returns (LiquifiDAO.ProposalStatus) {
         require(result == LiquifiDAO.ProposalStatus.IN_PROGRESS, "voting completed");
         
-        if (block.timestamp > started + 1 hours * votingPeriod) {
+        if (block.timestamp > endTime()) {
             return finalize();
+        } else {
+            return LiquifiDAO.ProposalStatus.IN_PROGRESS;
         }
     }
 
     function finalize() public returns (LiquifiDAO.ProposalStatus) {
-        require(block.timestamp > started + 1 hours * votingPeriod, "Proposal: Period hasn't passed");
+        require(block.timestamp > endTime(), "Proposal: Period hasn't passed");
 
         if ((totalInfluence != 0) 
             && (100 * (approvalsInfluence + againstInfluence + abstainInfluence) / totalInfluence < quorum )){
