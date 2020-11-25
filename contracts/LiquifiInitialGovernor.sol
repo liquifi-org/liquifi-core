@@ -16,6 +16,7 @@ contract LiquifiInitialGovernor {
     event EmergencyLock(address sender, address pool);
     event ProposalCreated(address proposal);
     event ProposalFinalized(address proposal, LiquifiDAO.ProposalStatus proposalStatus);
+    event DepositWithdrawn(address user, uint amount);
 
     struct CreatedProposals{
         uint amountDeposited;
@@ -31,6 +32,7 @@ contract LiquifiInitialGovernor {
     LiquifiProposal[] public deployedProposals;
     mapping(address => CreatedProposals) proposalInfo;
     mapping(/* user */address => Deposit) public deposits;
+    address[] public userDepositsList;
 
     uint public immutable tokensRequiredToCreateProposal; 
     uint public constant quorum = 50; //percenrage
@@ -60,17 +62,23 @@ contract LiquifiInitialGovernor {
             deposits[user].amount = amount;
         }
         deposits[user].unfreezeTime = Math.max(deposits[user].unfreezeTime, unfreezeTime);
+        userDepositsList.push(user);
     } 
 
     function withdraw() public {
-        address user = msg.sender;
-        require(deposits[user].amount > 0, "LIQUIFI_GV: NO DEPOSIT");
-        require(deposits[user].unfreezeTime < block.timestamp, "LIQUIFI_GV: DEPOSIT FROZEN");
-        
-        uint amount = deposits[user].amount;
-        deposits[user].amount = 0;
+        require(_withdraw(msg.sender, block.timestamp) > 0, "LIQUIFI_GV: WITHDRAW FAILED");
+    }
 
+    function _withdraw(address user, uint maxTime) private returns (uint) {
+        uint amount = deposits[user].amount;
+        if (amount == 0 || deposits[user].unfreezeTime >= maxTime) {
+            return 0;
+        }
+        
+        deposits[user].amount = 0;
         require(govToken.transfer(user, amount), "LIQUIFI_GV: TRANSFER FAILED");
+        emit DepositWithdrawn(user, amount);
+        return amount;
     }
 
     function createProposal(string memory _proposal, uint _option, uint _newValue, address _address, address _address2) public {
@@ -119,12 +127,21 @@ contract LiquifiInitialGovernor {
         require(proposalInfo[proposal].amountDeposited > 0, "LIQUIFI_GV: BAD SENDER");
         require(proposalInfo[proposal].status == LiquifiDAO.ProposalStatus.IN_PROGRESS, "LIQUIFI_GV: PROPOSAL FINALIZED");
 
+        uint maxWithdrawTime = block.timestamp;
+        
         if (_proposalStatus == LiquifiDAO.ProposalStatus.APPROVED) {
-            if (_option == 1) { changeGovernor(_address); }
+            if (_option == 1) { 
+                changeGovernor(_address); 
+                maxWithdrawTime = type(uint).max;
+            }
         }
 
         proposalInfo[proposal].status = _proposalStatus;   
         emit ProposalFinalized(proposal, _proposalStatus);   
+
+        for(uint userIndex; userIndex < userDepositsList.length; userIndex++) {
+            _withdraw(userDepositsList[userIndex], maxWithdrawTime);
+        }
     }
 
     function changeGovernor(address _newGovernor) private {

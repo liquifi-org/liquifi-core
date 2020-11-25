@@ -81,13 +81,12 @@ describe("Liquifi Initial Governor", () => {
         expect(await proposal.approvalsInfluence()).to.equal(token(150));
         expect(await governanceToken.balanceOf(await voter.getAddress())).to.be.eq(token(0));
 
-        await expect(governor.connect(voter).withdraw()).to.be.revertedWith("LIQUIFI_GV: DEPOSIT FROZEN");
+        await expect(governor.connect(voter).withdraw()).to.be.revertedWith("LIQUIFI_GV: WITHDRAW FAILED");
         
         // Finalize the proposal
         await wait(60*60*24*3); //3 days
         await proposal.finalize()
         expect(await proposal.result()).to.equal(1);
-        await governor.connect(voter).withdraw();
         expect(await governanceToken.balanceOf(await voter.getAddress())).to.be.eq(token(150));
 
         // Check the new governor
