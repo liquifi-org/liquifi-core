@@ -81,6 +81,23 @@ contract LiquifiInitialGovernor {
         return amount;
     }
 
+    function withdrawAll() public {
+        withdrawMultiple(0, userDepositsList.length);
+    }
+
+    function withdrawMultiple(uint fromIndex, uint toIndex) public {
+        uint maxWithdrawTime = block.timestamp;
+        (address currentGovernor,) = governanceRouter.governance();
+
+        if (currentGovernor != address(this)) {
+            maxWithdrawTime = type(uint).max;
+        }
+        
+        for(uint userIndex = fromIndex; userIndex < toIndex; userIndex++) {
+            _withdraw(userDepositsList[userIndex], maxWithdrawTime);
+        }
+    }
+
     function createProposal(string memory _proposal, uint _option, uint _newValue, address _address, address _address2) public {
         address creator = msg.sender;
         LiquifiProposal newProposal = new LiquifiProposal(_proposal, govToken.totalSupply(), address(govToken), _option, _newValue, quorum, threshold, vetoPercentage, votingPeriod, _address, _address2);
@@ -126,22 +143,15 @@ contract LiquifiInitialGovernor {
         address proposal = msg.sender;
         require(proposalInfo[proposal].amountDeposited > 0, "LIQUIFI_GV: BAD SENDER");
         require(proposalInfo[proposal].status == LiquifiDAO.ProposalStatus.IN_PROGRESS, "LIQUIFI_GV: PROPOSAL FINALIZED");
-
-        uint maxWithdrawTime = block.timestamp;
         
         if (_proposalStatus == LiquifiDAO.ProposalStatus.APPROVED) {
             if (_option == 1) { 
                 changeGovernor(_address); 
-                maxWithdrawTime = type(uint).max;
             }
         }
 
         proposalInfo[proposal].status = _proposalStatus;   
         emit ProposalFinalized(proposal, _proposalStatus);   
-
-        for(uint userIndex; userIndex < userDepositsList.length; userIndex++) {
-            _withdraw(userDepositsList[userIndex], maxWithdrawTime);
-        }
     }
 
     function changeGovernor(address _newGovernor) private {

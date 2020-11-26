@@ -87,6 +87,7 @@ describe("Liquifi Initial Governor", () => {
         await wait(60*60*24*3); //3 days
         await proposal.finalize()
         expect(await proposal.result()).to.equal(1);
+        await governor.withdrawAll();
         expect(await governanceToken.balanceOf(await voter.getAddress())).to.be.eq(token(150));
 
         // Check the new governor
