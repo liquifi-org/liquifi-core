@@ -35,7 +35,7 @@ contract LiquifiInitialGovernor {
     address[] public userDepositsList;
 
     uint public immutable tokensRequiredToCreateProposal; 
-    uint public constant quorum = 50; //percenrage
+    uint public constant quorum = 10; //percenrage
     uint public constant threshold = 50;
     uint public constant vetoPercentage = 33;
     uint public immutable votingPeriod; //hours
