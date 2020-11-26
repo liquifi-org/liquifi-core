@@ -50,14 +50,6 @@ npm run clean
 
 
 ### Deploy Contracts
-#### Current Contracts (Ropsten, old contracts):
-- LiquiFi Pool Factory address: `0xdE39De4B146B30E67C4E73c176E47fEfFF7e563A`
-- LiquiFi Pool Register address: `0x5da7C78846367ff186a7B1e6B8A2b9d09744c055`
-
-#### Current Contracts (Rinkeby):
-- LiquiFi Pool Factory address: `0x6E00b164A06397Fb0c1F43bA61D8E3Ff1f944e5c`
-- LiquiFi Pool Register address: `0x4F433BD31c1c5393B6F86E0d287D59e62FdF4cfd`
-
 Create file `wallet.ts` with the following content:
 ```ts
 export const privateKey = 'YOUR-PRIVATE-KEY'
