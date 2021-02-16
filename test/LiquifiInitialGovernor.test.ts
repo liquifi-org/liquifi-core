@@ -1,5 +1,5 @@
-import { ethers } from "@nomiclabs/buidler";
-import { Wallet } from "ethers";
+import { ethers } from "hardhat";
+import { Signer } from "ethers";
 import chai from "chai";
 import { deployContract, solidity } from "ethereum-waffle";
 
@@ -7,13 +7,13 @@ chai.use(solidity);
 const { expect } = chai;
 
 import { LiquifiInitialGovernor } from "../typechain/LiquifiInitialGovernor";
-import LiquifiInitialGovernorArtifact from "../artifacts/LiquifiInitialGovernor.json";
+import LiquifiInitialGovernorArtifact from "../artifacts/contracts/LiquifiInitialGovernor.sol/LiquifiInitialGovernor.json";
 
 import { TestMinter } from "../typechain/TestMinter";
-import TestMinterArtifact from "../artifacts/TestMinter.json";
+import TestMinterArtifact from "../artifacts/contracts/test/TestMinter.sol/TestMinter.json";
 
 import { LiquifiGovernanceRouter } from "../typechain/LiquifiGovernanceRouter";
-import LiquifiGovernanceRouterArtifact from "../artifacts/LiquifiGovernanceRouter.json";
+import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.json";
 
 import { LiquifiProposal } from "../typechain/LiquifiProposal";
 import { LiquifiProposalFactory } from "../typechain/LiquifiProposalFactory";
@@ -26,13 +26,13 @@ describe("Liquifi Initial Governor", () => {
     var newGovernor: LiquifiInitialGovernor;
     var governanceToken: TestMinter;
     var governanceRouter: LiquifiGovernanceRouter;
-    var governanceTokenOwner: Wallet;
-    var governorOwner: Wallet;
-    var weth: Wallet;
-    var voter: Wallet;
+    var governanceTokenOwner: Signer;
+    var governorOwner: Signer;
+    var weth: Signer;
+    var voter: Signer;
 
     beforeEach(async () => {
-        [governanceTokenOwner, governorOwner, weth, voter] = await ethers.getSigners() as Wallet[];
+        [governanceTokenOwner, governorOwner, weth, voter] = await ethers.getSigners();
         governanceRouter = await deployContract(governanceTokenOwner, LiquifiGovernanceRouterArtifact, [3600, await weth.getAddress()]) as LiquifiGovernanceRouter
         governanceToken = await deployContract(governanceTokenOwner, TestMinterArtifact, [governanceRouter.address, token(250), []]) as TestMinter;
         governor = await deployContract(governanceTokenOwner, LiquifiInitialGovernorArtifact, [governanceRouter.address, token(100), 48]) as LiquifiInitialGovernor;

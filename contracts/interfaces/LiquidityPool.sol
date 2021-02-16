@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity = 0.7.0;
+pragma solidity >= 0.7.0 <0.8.0;
 
 import { ERC20 } from "./ERC20.sol";
 import { GovernanceRouter } from "./GovernanceRouter.sol";

@@ -1,16 +1,16 @@
 import chai from "chai";
 
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { deployContract, solidity } from "ethereum-waffle";
-import { Wallet, BigNumber } from "ethers"
+import { Signer, BigNumber } from "ethers"
 import { token } from "./util/TokenUtil"
 
-import LiquifiPoolFactoryArtifact from "../artifacts/LiquifiPoolFactory.json";
-import TestTokenArtifact from "../artifacts/TestToken.json";
-import LiquifiPoolRegisterArtifact from "../artifacts/LiquifiPoolRegister.json";
-import TestWethArtifact from "../artifacts/TestWeth.json";
-import LiquifiGovernanceRouterArtifact from "../artifacts/LiquifiGovernanceRouter.json";
-import LiquifiActivityMeterArtifact from "../artifacts/LiquifiActivityMeter.json";
+import LiquifiPoolFactoryArtifact from "../artifacts/contracts/LiquifiPoolFactory.sol/LiquifiPoolFactory.json";
+import TestTokenArtifact from "../artifacts/contracts/test/TestToken.sol/TestToken.json";
+import LiquifiPoolRegisterArtifact from "../artifacts/contracts/LiquifiPoolRegister.sol/LiquifiPoolRegister.json";
+import TestWethArtifact from "../artifacts/contracts/test/TestWeth.sol/TestWeth.json";
+import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.json";
+import LiquifiActivityMeterArtifact from "../artifacts/contracts/LiquifiActivityMeter.sol/LiquifiActivityMeter.json";
 
 import { TestToken } from "../typechain/TestToken"
 import { TestWeth } from "../typechain/TestWeth"
@@ -19,8 +19,6 @@ import { LiquifiPoolFactory } from "../typechain/LiquifiPoolFactory"
 import { LiquifiDelayedExchangePoolFactory } from "../typechain/LiquifiDelayedExchangePoolFactory"
 import { orderHistory, wait, lastBlockTimestamp, traceDebugEvents } from "./util/DebugUtils";
 import { LiquifiGovernanceRouter } from "../typechain/LiquifiGovernanceRouter";
-import { ok } from "assert";
-import { assert } from "console";
 import { LogDescription } from "ethers/lib/utils";
 
 chai.use(solidity);
@@ -28,10 +26,10 @@ const { expect } = chai;
 
 describe("Liquifi Pool Register", () => {
 
-    var registerOwner: Wallet;
-    var liquidityProvider: Wallet;
-    var factoryOwner: Wallet;
-    var otherTrader: Wallet;
+    var registerOwner: Signer;
+    var liquidityProvider: Signer;
+    var factoryOwner: Signer;
+    var otherTrader: Signer;
 
     var tokenA: TestToken;
     var tokenB: TestToken;
@@ -41,7 +39,7 @@ describe("Liquifi Pool Register", () => {
     var factory: LiquifiPoolFactory;
 
     beforeEach(async () => {
-        [registerOwner, liquidityProvider, factoryOwner, otherTrader] = await ethers.getSigners() as Wallet[];
+        [registerOwner, liquidityProvider, factoryOwner, otherTrader] = await ethers.getSigners();
 
         tokenA = await deployContract(liquidityProvider, TestTokenArtifact, [token(100000), "Token A", "TKA", [await otherTrader.getAddress()]]) as TestToken
         tokenB = await deployContract(liquidityProvider, TestTokenArtifact, [token(100000), "Token B", "TKB", [await otherTrader.getAddress()]]) as TestToken
@@ -367,7 +365,7 @@ describe("Liquifi Pool Register", () => {
     //     expect(await register.connect(liquidityProvider).delayedSwap(tokenA.address, tokenB.address, 10, token(10), token(10), token(8))).is.ok
     // })
 
-    async function addLiquidity(amountA: BigNumber, amountB: BigNumber, _liquidityProvider: Wallet = liquidityProvider) {
+    async function addLiquidity(amountA: BigNumber, amountB: BigNumber, _liquidityProvider: Signer = liquidityProvider) {
         await tokenA.connect(_liquidityProvider).approve(register.address, amountA)
         await tokenB.connect(_liquidityProvider).approve(register.address, amountB);
         await register.connect(_liquidityProvider).deposit(tokenA.address, amountA, tokenB.address, amountB, 

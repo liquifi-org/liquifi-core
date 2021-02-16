@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { l2ethers as ethers } from "hardhat";
 import { Signer, BigNumber } from "ethers";
 import chai from "chai";
 import { deployContract, solidity } from "ethereum-waffle";
@@ -12,10 +12,14 @@ import { LiquifiProposal } from "../typechain/LiquifiProposal";
 import { LiquifiProposalFactory } from "../typechain/LiquifiProposalFactory";
 
 import { LiquifiInitialGovernor } from "../typechain/LiquifiInitialGovernor";
-import LiquifiInitialGovernorArtifact from "../artifacts/contracts/LiquifiInitialGovernor.sol/LiquifiInitialGovernor.json";
+import LiquifiInitialGovernorArtifact from "../artifacts/contracts/LiquifiInitialGovernor.sol/LiquifiInitialGovernor.ovm.json";
 
 import { LiquifiGovernanceRouter } from "../typechain/LiquifiGovernanceRouter";
-import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.json";
+import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.ovm.json";
+import { TestMinter } from "../typechain/TestMinter";
+import TestMinterArtifact from "../artifacts/contracts/test/TestMinter.sol/TestMinter.ovm.json";
+
+import { AddressZero } from "@ethersproject/constants";
 
 const token = (value: Number) => BigNumber.from(value).mul(BigNumber.from(10).pow(18))
 
@@ -24,12 +28,7 @@ async function skipTime(seconds: number) {
     await ethers.provider.send("evm_mine", []);      // mine the next block
 }
 
-import { TestMinter } from "../typechain/TestMinter";
-import TestMinterArtifact from "../artifacts/contracts/test/TestMinter.sol/TestMinter.json";
-
-import { AddressZero } from "@ethersproject/constants";
-
-describe("Proposals", () => {
+describe("OPTIMISM Proposals", () => {
     var proposal: LiquifiProposal;
     var govToken: TestMinter;
     var signers: Signer[];
@@ -56,7 +55,7 @@ describe("Proposals", () => {
         await govToken.connect(signers[2]).approve(gov.address, token(100));
 
         //creating proposal
-        await expect(await gov.connect(signers[0]).createProposal("test", 1, 1, AddressZero, AddressZero)).to.be.ok;
+        expect(await gov.connect(signers[0]).createProposal("test", 1, 1, AddressZero, AddressZero)).to.be.ok;
         expect((await gov.getDeployedProposals()).length).to.be.equal(1);
         let prop = (await gov.getDeployedProposals())[0];
         proposal = LiquifiProposalFactory.connect(prop, signers[5]);

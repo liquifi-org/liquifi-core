@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity = 0.7.0;
+pragma solidity >= 0.7.0 <0.8.0;
 
 import { LiquifiLiquidityPool } from "../LiquifiLiquidityPool.sol";
 import { ERC20 } from "../interfaces/ERC20.sol";

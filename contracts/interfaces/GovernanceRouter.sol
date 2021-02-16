@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity = 0.7.0;
+pragma solidity >= 0.7.0 <0.8.0;
 
 import { ActivityMeter } from "./ActivityMeter.sol";
 import { Minter } from "./Minter.sol";
@@ -14,7 +14,7 @@ interface GovernanceRouter {
     event PoolFactoryChanged(address poolFactory);
 
     function schedule() external returns(uint timeZero, uint miningPeriod);
-    function creator() external returns(address);
+    // function creator() external returns(address);
     function weth() external returns(WETH);
 
     function activityMeter() external returns(ActivityMeter);

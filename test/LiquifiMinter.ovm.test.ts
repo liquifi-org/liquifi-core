@@ -1,16 +1,15 @@
 import chai from "chai";
 
-import { ethers } from "hardhat";
+import { l2ethers as ethers } from "hardhat";
 import { deployContract, solidity } from "ethereum-waffle";
-import { Signer, BigNumber } from "ethers"
+import { Signer } from "ethers"
 import { token } from "./util/TokenUtil";
 
-import TestTokenArtifact from "../artifacts/contracts/test/TestToken.sol/TestToken.json";
-import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.json";
-import LiquifiActivityMeterArtifact from "../artifacts/contracts/LiquifiActivityMeter.sol/LiquifiActivityMeter.json";
-import LiquifiMinterArtifact from "../artifacts/contracts/LiquifiMinter.sol/LiquifiMinter.json";
-import LiquifiPoolRegisterArtifact from "../artifacts/contracts/LiquifiPoolRegister.sol/LiquifiPoolRegister.json";
-import LiquifiPoolFactoryArtifact from "../artifacts/contracts/LiquifiPoolFactory.sol/LiquifiPoolFactory.json";
+import TestTokenArtifact from "../artifacts/contracts/test/TestToken.sol/TestToken.ovm.json";
+import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.ovm.json";
+import LiquifiActivityMeterArtifact from "../artifacts/contracts/LiquifiActivityMeter.sol/LiquifiActivityMeter.ovm.json";
+import LiquifiMinterArtifact from "../artifacts/contracts/LiquifiMinter.sol/LiquifiMinter.ovm.json";
+import LiquifiPoolRegisterArtifact from "../artifacts/contracts/LiquifiPoolRegister.sol/LiquifiPoolRegister.ovm.json";
 
 import { TestToken } from "../typechain/TestToken"
 import { LiquifiActivityMeter } from "../typechain/LiquifiActivityMeter"
@@ -21,7 +20,7 @@ import { LiquifiPoolRegister } from "../typechain/LiquifiPoolRegister";
 chai.use(solidity);
 const { expect } = chai;
 
-describe("Liquifi Minter", () => {
+describe("OPTIMISM Liquifi Minter", () => {
 
     var liquidityProvider: Signer;
     var factoryOwner: Signer;
@@ -43,7 +42,6 @@ describe("Liquifi Minter", () => {
         governanceRouter = await deployContract(factoryOwner, LiquifiGovernanceRouterArtifact, [60, tokenA.address]) as LiquifiGovernanceRouter;
         activityMeter = await deployContract(factoryOwner, LiquifiActivityMeterArtifact, [governanceRouter.address]) as LiquifiActivityMeter;
         minter = await deployContract(factoryOwner, LiquifiMinterArtifact, [governanceRouter.address]) as LiquifiMinter;
-        await deployContract(factoryOwner, LiquifiPoolFactoryArtifact, [governanceRouter.address], { gasLimit: 9500000 });
         register = await deployContract(factoryOwner, LiquifiPoolRegisterArtifact, [governanceRouter.address]) as LiquifiPoolRegister
     })
 
@@ -61,23 +59,11 @@ describe("Liquifi Minter", () => {
         expect(await minter.periodTokens(2)).to.be.eq(initialPeriodTokens.mul(periodDecayK).shr(8));
         expect(await minter.periodTokens(3)).to.be.eq(initialPeriodTokens.mul(periodDecayK).mul(periodDecayK).shr(16));
         let tokens = initialPeriodTokens;
-        for(let i = 1; i < 1000; i++) {
+        for(let i = 1; i < 50; i++) {
             const computed = await minter.periodTokens(i);
             const diff = computed.gt(tokens) ? computed.sub(tokens) : tokens.sub(computed);
             expect(diff).to.be.lt(32);
             tokens = tokens.mul(periodDecayK).shr(8);
         }
     });
-
-    const wait = async (seconds: number) => {
-        await ethers.provider.send("evm_increaseTime", [seconds - 1]);   
-        await ethers.provider.send("evm_mine", []); // mine the next block
-    }
-
-    async function addLiquidity(amountA: BigNumber, amountB: BigNumber, _liquidityProvider: Signer = liquidityProvider) {
-        await tokenA.connect(_liquidityProvider).approve(register.address, amountA)
-        await tokenB.connect(_liquidityProvider).approve(register.address, amountB);
-        await register.connect(_liquidityProvider).deposit(tokenA.address, amountA, tokenB.address, amountB, 
-            await _liquidityProvider.getAddress(), 42949672960);
-    }
 })

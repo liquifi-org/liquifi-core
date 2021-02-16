@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity = 0.7.0;
+pragma solidity >= 0.7.0 <0.8.0;
 
 import { GovernanceRouter } from "./interfaces/GovernanceRouter.sol";
 import { ActivityMeter } from "./interfaces/ActivityMeter.sol";
@@ -12,7 +12,7 @@ contract LiquifiGovernanceRouter is GovernanceRouter {
     uint private immutable timeZero;
     uint private immutable miningPeriod;
 
-    address public immutable override creator;
+    // address public immutable override creator;
     WETH public immutable override weth;
     
     // write once props
@@ -34,7 +34,6 @@ contract LiquifiGovernanceRouter is GovernanceRouter {
             /*desiredMaxHistory*/uint96(100) << 24
         );
 
-        creator = tx.origin;
         timeZero = block.timestamp;
         miningPeriod = _miningPeriod;
         weth = WETH(_weth);
@@ -46,23 +45,23 @@ contract LiquifiGovernanceRouter is GovernanceRouter {
     }
 
     function setActivityMeter(ActivityMeter _activityMeter) external override {
-        require(address(activityMeter) == address(0) && tx.origin == creator, "LIQUIFI_GVR: INVALID INIT SENDER");
+        require(address(activityMeter) == address(0) /* && tx.origin == creator */, "LIQUIFI_GVR: INVALID INIT SENDER");
         activityMeter = _activityMeter;
     }
 
     function setMinter(Minter _minter) external override {
-        require(address(minter) == address(0) && tx.origin == creator, "LIQUIFI_GVR: INVALID INIT SENDER");
+        require(address(minter) == address(0) /* && tx.origin == creator */, "LIQUIFI_GVR: INVALID INIT SENDER");
         minter = _minter;
     }
 
     function setPoolFactory(PoolFactory _poolFactory) external override {
-        require(msg.sender == governor || (address(poolFactory) == address(0) && tx.origin == creator), "LIQUIFI_GVR: INVALID INIT SENDER");
+        require(msg.sender == governor || (address(poolFactory) == address(0) /* && tx.origin == creator */), "LIQUIFI_GVR: INVALID INIT SENDER");
         poolFactory = _poolFactory;
         emit PoolFactoryChanged(address(_poolFactory));
     }
 
     function setGovernor(address _governor) external override {
-        require(msg.sender == governor || (governor == address(0) && tx.origin == creator), "LIQUIFI_GVR: INVALID GOVERNANCE SENDER");
+        require(msg.sender == governor || (governor == address(0) /* && tx.origin == creator */), "LIQUIFI_GVR: INVALID GOVERNANCE SENDER");
         governor = _governor;
         emit GovernorChanged(_governor);
     }

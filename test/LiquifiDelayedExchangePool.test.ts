@@ -1,28 +1,28 @@
 import chai from "chai";
 
-import { ethers } from "@nomiclabs/buidler";
+import { ethers, } from "hardhat";
 import { deployContract, solidity } from "ethereum-waffle";
-import { Wallet, BigNumber } from "ethers"
+import { BigNumber, Signer } from "ethers"
 import { token } from "./util/TokenUtil";
 
-import LiquifiDelayedExchangePoolArtifact from "../artifacts/LiquifiDelayedExchangePool.json";
-import TestTokenArtifact from "../artifacts/TestToken.json";
-import LiquifiGovernanceRouterArtifact from "../artifacts/LiquifiGovernanceRouter.json";
-import LiquifiActivityMeterArtifact from "../artifacts/LiquifiActivityMeter.json";
+import LiquifiDelayedExchangePoolArtifact from "../artifacts/contracts/LiquifiDelayedExchangePool.sol/LiquifiDelayedExchangePool.json";
+import TestTokenArtifact from "../artifacts/contracts/test/TestToken.sol/TestToken.json";
+import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.json";
+import LiquifiActivityMeterArtifact from "../artifacts/contracts/LiquifiActivityMeter.sol/LiquifiActivityMeter.json";
 
 import { TestToken } from "../typechain/TestToken"
 import { LiquifiGovernanceRouter } from "../typechain/LiquifiGovernanceRouter"
 import { LiquifiDelayedExchangePool } from "../typechain/LiquifiDelayedExchangePool";
-import { orderHistory, collectEvents, lastBlockTimestamp, traceDebugEvents, wait } from "./util/DebugUtils";
+import { orderHistory, lastBlockTimestamp, wait } from "./util/DebugUtils";
 
 chai.use(solidity);
 const { expect } = chai;
 
 describe("Liquifi Delayed Exchange Pool", () => {
 
-    var liquidityProvider: Wallet;
-    var factoryOwner: Wallet;
-    var otherTrader: Wallet;
+    var liquidityProvider: Signer;
+    var factoryOwner: Signer;
+    var otherTrader: Signer;
 
     var tokenA: TestToken;
     var tokenB: TestToken;
@@ -31,7 +31,7 @@ describe("Liquifi Delayed Exchange Pool", () => {
 
     beforeEach(async () => {
         let fakeWeth;
-        [liquidityProvider, factoryOwner, otherTrader, fakeWeth] = await ethers.getSigners() as Wallet[];
+        [liquidityProvider, factoryOwner, otherTrader, fakeWeth] = await ethers.getSigners();
         
         tokenA = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token A", "TKA", [await otherTrader.getAddress()]]) as TestToken
         tokenB = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token B", "TKB", [await otherTrader.getAddress()]]) as TestToken
@@ -351,7 +351,7 @@ describe("Liquifi Delayed Exchange Pool", () => {
     //     await expect(pool.swap(token(0), littleMoreOut, await liquidityProvider.getAddress())).to.be.revertedWith("LIQUIFI: INVALID_EXCHANGE_RATE");
     // })
 
-    const addLiquidity = async (amountA: BigNumber, amountB: BigNumber, _liquidityProvider: Wallet = liquidityProvider) => {
+    const addLiquidity = async (amountA: BigNumber, amountB: BigNumber, _liquidityProvider: Signer = liquidityProvider) => {
         await tokenA.transfer(pool.address, amountA)
         await tokenB.transfer(pool.address, amountB)
         await pool.mint(await _liquidityProvider.getAddress())

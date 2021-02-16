@@ -1,25 +1,24 @@
 import chai from "chai";
 
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { deployContract, solidity } from "ethereum-waffle";
-import { Wallet, BigNumber, ContractTransaction } from "ethers"
+import { Signer, BigNumber } from "ethers"
 import { token } from "./util/TokenUtil";
 
-import LiquifiDelayedExchangePoolArtifact from "../artifacts/LiquifiDelayedExchangePool.json";
-import TestTokenArtifact from "../artifacts/TestToken.json";
-import LiquifiGovernanceRouterArtifact from "../artifacts/LiquifiGovernanceRouter.json";
-import LiquifiActivityMeterArtifact from "../artifacts/LiquifiActivityMeter.json";
-import LiquifiPoolFactoryArtifact from "../artifacts/LiquifiPoolFactory.json";
+import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.json";
+import LiquifiActivityMeterArtifact from "../artifacts/contracts/LiquifiActivityMeter.sol/LiquifiActivityMeter.json";
+import LiquifiPoolFactoryArtifact from "../artifacts/contracts/LiquifiPoolFactory.sol/LiquifiPoolFactory.json";
 
+import TestTokenArtifact from "../artifacts/contracts/test/TestToken.sol/TestToken.json";
+import TestGovernorArtifact from "../artifacts/contracts/test/TestGovernor.sol/TestGovernor.json";
 import { TestGovernor } from "../typechain/TestGovernor";
-import TestGovernorArtifact from "../artifacts/TestGovernor.json";
 
 import { LiquifiDelayedExchangePoolFactory } from "../typechain/LiquifiDelayedExchangePoolFactory"
 import { TestToken } from "../typechain/TestToken"
 import { LiquifiGovernanceRouter } from "../typechain/LiquifiGovernanceRouter"
 import { LiquifiDelayedExchangePool } from "../typechain/LiquifiDelayedExchangePool";
 import { LiquifiPoolFactory } from "../typechain/LiquifiPoolFactory"
-import { orderHistory, collectEvents, lastBlockTimestamp, traceDebugEvents, wait } from "./util/DebugUtils";
+import { orderHistory, wait } from "./util/DebugUtils";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -27,9 +26,9 @@ const { expect } = chai;
 describe("Pool governance and disaster recovery", function() {
     this.timeout(120000);
 
-    var liquidityProvider: Wallet;
-    var factoryOwner: Wallet;
-    var otherTrader: Wallet;
+    var liquidityProvider: Signer;
+    var factoryOwner: Signer;
+    var otherTrader: Signer;
 
     var tokenA: TestToken;
     var tokenB: TestToken;
@@ -40,7 +39,7 @@ describe("Pool governance and disaster recovery", function() {
 
     beforeEach(async () => {
         let fakeWeth;
-        [liquidityProvider, factoryOwner, otherTrader, fakeWeth] = await ethers.getSigners() as Wallet[];
+        [liquidityProvider, factoryOwner, otherTrader, fakeWeth] = await ethers.getSigners();
         
         tokenA = await deployContract(liquidityProvider, TestTokenArtifact, [BigNumber.from(1).shl(128), "Token A", "TKA", [await otherTrader.getAddress()]]) as TestToken
         tokenB = await deployContract(liquidityProvider, TestTokenArtifact, [BigNumber.from(1).shl(128), "Token B", "TKB", [await otherTrader.getAddress()]]) as TestToken
@@ -55,7 +54,7 @@ describe("Pool governance and disaster recovery", function() {
         
         await factory.getPool(tokenA.address, tokenB.address);
         const poolAddress = await factory.findPool(tokenA.address, tokenB.address);
-        pool = await LiquifiDelayedExchangePoolFactory.connect(poolAddress, factoryOwner);  
+        pool = LiquifiDelayedExchangePoolFactory.connect(poolAddress, factoryOwner);  
     });
 
     it("should deploy all contracts", async () => {
@@ -378,7 +377,7 @@ describe("Pool governance and disaster recovery", function() {
         }
     });
 
-    const addLiquidity = async (amountA: BigNumber, amountB: BigNumber, _liquidityProvider: Wallet = liquidityProvider) => {
+    const addLiquidity = async (amountA: BigNumber, amountB: BigNumber, _liquidityProvider: Signer = liquidityProvider) => {
         await tokenA.transfer(pool.address, amountA)
         await tokenB.transfer(pool.address, amountB)
         await pool.mint(await _liquidityProvider.getAddress())

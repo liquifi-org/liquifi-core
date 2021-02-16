@@ -1,13 +1,13 @@
 import chai from "chai";
 
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { deployContract, solidity } from "ethereum-waffle";
-import { Wallet, BigNumber } from "ethers"
+import { Signer } from "ethers"
 import { token } from "./util/TokenUtil"
 
-import LiquifiPoolFactoryArtifact from "../artifacts/LiquifiPoolFactory.json";
-import TestTokenArtifact from "../artifacts/TestToken.json";
-import LiquifiGovernanceRouterArtifact from "../artifacts/LiquifiGovernanceRouter.json";
+import LiquifiPoolFactoryArtifact from "../artifacts/contracts/LiquifiPoolFactory.sol/LiquifiPoolFactory.json";
+import TestTokenArtifact from "../artifacts/contracts/test/TestToken.sol/TestToken.json";
+import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.json";
 
 import { TestToken } from "../typechain/TestToken"
 import { LiquifiPoolFactory } from "../typechain/LiquifiPoolFactory"
@@ -18,8 +18,8 @@ const { expect } = chai;
 
 describe("Liquifi Pool Factory", () => {
 
-    var liquidityProvider: Wallet;
-    var factoryOwner: Wallet;
+    var liquidityProvider: Signer;
+    var factoryOwner: Signer;
 
     var tokenA: TestToken;
     var tokenB: TestToken;
@@ -29,7 +29,7 @@ describe("Liquifi Pool Factory", () => {
 
     beforeEach(async () => {
         let fakeWeth;
-        [liquidityProvider, factoryOwner, fakeWeth] = await ethers.getSigners() as Wallet[];
+        [liquidityProvider, factoryOwner, fakeWeth] = await ethers.getSigners();
 
         tokenA = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token A", "TKA", []]) as TestToken
         tokenB = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token B", "TKB", []]) as TestToken
