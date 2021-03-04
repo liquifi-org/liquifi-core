@@ -11,6 +11,8 @@ import LiquifiPoolRegisterArtifact from "../artifacts/contracts/LiquifiPoolRegis
 import TestWethArtifact from "../artifacts/contracts/test/TestWeth.sol/TestWeth.json";
 import LiquifiGovernanceRouterArtifact from "../artifacts/contracts/LiquifiGovernanceRouter.sol/LiquifiGovernanceRouter.json";
 import LiquifiActivityMeterArtifact from "../artifacts/contracts/LiquifiActivityMeter.sol/LiquifiActivityMeter.json";
+import LiquifiActivityReporterArtifact from "../artifacts/contracts/LiquifiActivityReporter.sol/LiquifiActivityReporter.json";
+import TestMessengerArtifact from "../artifacts/contracts/test/TestMessenger.sol/TestMessenger.json";
 
 import { TestToken } from "../typechain/TestToken"
 import { TestWeth } from "../typechain/TestWeth"
@@ -20,6 +22,7 @@ import { LiquifiDelayedExchangePoolFactory } from "../typechain/LiquifiDelayedEx
 import { orderHistory, wait, lastBlockTimestamp, traceDebugEvents } from "./util/DebugUtils";
 import { LiquifiGovernanceRouter } from "../typechain/LiquifiGovernanceRouter";
 import { LogDescription } from "ethers/lib/utils";
+import { ZERO_ADDRESS } from "./setup";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -47,7 +50,8 @@ describe("Liquifi Pool Register", () => {
         weth = await deployContract(liquidityProvider, TestWethArtifact, []) as TestWeth;
         const governanceRouter = await deployContract(factoryOwner, LiquifiGovernanceRouterArtifact, [3600, weth.address]) as LiquifiGovernanceRouter;
         factory = await deployContract(factoryOwner, LiquifiPoolFactoryArtifact, [governanceRouter.address], { gasLimit: 9500000 }) as LiquifiPoolFactory;
-        await deployContract(factoryOwner, LiquifiActivityMeterArtifact, [governanceRouter.address]);
+        const messenger = await deployContract(factoryOwner, TestMessengerArtifact)
+        await deployContract(factoryOwner, LiquifiActivityReporterArtifact, [messenger.address, governanceRouter.address, ZERO_ADDRESS]);
         register = await deployContract(registerOwner, LiquifiPoolRegisterArtifact, [governanceRouter.address]) as LiquifiPoolRegister
     })
 

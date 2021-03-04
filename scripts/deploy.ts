@@ -1,12 +1,16 @@
-import { ethers, network } from "@nomiclabs/buidler";
+import { ethers, network } from "hardhat";
 import { wethAddress } from "./weth";
 import { BigNumber } from "ethers";
 import fs from 'fs';
+import { LiquifiActivityReporterFactory } from "../typechain";
+import contracts from "./contracts.json"
+import { storeAddresses } from "./addresses";
+
+const l2Messenger = "0x6418E5Da52A3d7543d393ADD3Fa98B0795d27736"
 
 var ADDR = {
   'governanceRouter': '',
-  'activityMeter': '',
-  'minter': '',
+  'activityReporter': '',
   'governor': '',
   'register': '',
   'factory': ''
@@ -24,24 +28,13 @@ async function deployGovernanceRouter(wethAddress: string) {
     return liquifiGovernanceRouter.address
 }
 
-async function deployActivityMeter(governanceRouterAddress: string) {
-    const LiquifiActivityMeter = await ethers.getContractFactory("LiquifiActivityMeter");
-    //var options = { gasLimit: 7000000 };
-    const liquifiActivityMeter = await LiquifiActivityMeter.deploy(governanceRouterAddress);
-    await liquifiActivityMeter.deployed();
-    console.log("LiquiFi Activity Meter address:", liquifiActivityMeter.address);
-    ADDR['activityMeter'] = liquifiActivityMeter.address
-    return liquifiActivityMeter.address
-}
-
-async function deployMinter(governanceRouterAddress: string) {
-    const LiquifiMinter = await ethers.getContractFactory("LiquifiMinter");
-    //var options = { gasLimit: 7000000 };
-    const liquifiMinter = await LiquifiMinter.deploy(governanceRouterAddress);
-    await liquifiMinter.deployed();
-    console.log("LiquiFi Minter address:", liquifiMinter.address);
-    ADDR['minter'] = liquifiMinter.address
-    return liquifiMinter.address
+async function deployActivityReporter(governanceRouterAddress: string) {
+    const LiquifiActivityReporter = await ethers.getContractFactory("LiquifiActivityReporter") as LiquifiActivityReporterFactory;
+    const liquifiActivityReporter = await LiquifiActivityReporter.deploy(governanceRouterAddress, contracts.activityMeter);
+    await liquifiActivityReporter.deployed();
+    console.log("LiquiFi Activity Reporter address:", liquifiActivityReporter.address);
+    ADDR['activityReporter'] = liquifiActivityReporter.address
+    return liquifiActivityReporter.address
 }
 
 async function deployGovernor(governanceRouterAddress: string) {
@@ -78,13 +71,13 @@ async function deployRegister(governanceRouterAddress: string) {
 
 async function main() {
     const governanceRouter = await deployGovernanceRouter(wethAddress[network.name]);
-    await deployActivityMeter(governanceRouter);
-    await deployMinter(governanceRouter);
+    await deployActivityReporter(governanceRouter);
     await deployFactory(governanceRouter);
     await deployGovernor(governanceRouter);
     await deployRegister(governanceRouter);
     try {
       fs.writeFileSync('contract-addresses.json', JSON.stringify(ADDR))
+      storeAddresses(ADDR)
     } catch {
       console.log('Failed to create addresses file')
     }

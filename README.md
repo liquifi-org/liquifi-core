@@ -1,5 +1,8 @@
 # LiquiFi Ethereum Smart Contracts
 
+> INSECURE CHANGES:
+> - ActivityMeter::_actualizeUserPool: no more DelayedExchangePool(pool).processDelayedOrders();
+
 
 ### Clean working folder
 
@@ -60,5 +63,3 @@ Run deploy script:
 ```sh
 npm run deploy
 ```
-
-

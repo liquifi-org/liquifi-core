@@ -28,7 +28,13 @@ const config: HardhatUserConfig = {
     },
     coverage: {
         url: 'http://localhost:8555'
-    }
+    },
+    local: {
+      url: 'http://192.168.0.52:9545'
+    },
+    optimism: {
+      url: 'http://192.168.0.52:8545'
+    },
   }
 };
 

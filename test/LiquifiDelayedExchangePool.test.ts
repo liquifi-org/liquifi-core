@@ -1,6 +1,6 @@
 import chai from "chai";
 
-import { ethers, } from "hardhat";
+import { ethers } from "hardhat";
 import { deployContract, solidity } from "ethereum-waffle";
 import { BigNumber, Signer } from "ethers"
 import { token } from "./util/TokenUtil";

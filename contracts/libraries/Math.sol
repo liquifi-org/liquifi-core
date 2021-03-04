@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >= 0.7.0 <0.8.0;
-import { Liquifi } from "./Liquifi.sol";
+pragma solidity >=0.7.0 <0.8.0;
+import {Liquifi} from "./Liquifi.sol";
 
 library Math {
-    
     function max(uint256 x, uint256 y) internal pure returns (uint256 result) {
         result = x > y ? x : y;
     }
@@ -12,8 +11,8 @@ library Math {
         result = x < y ? x : y;
     }
 
-    function sqrt(uint x) internal pure returns (uint result) {
-        uint y = x;
+    function sqrt(uint256 x) internal pure returns (uint256 result) {
+        uint256 y = x;
         result = (x + 1) / 2;
         while (result < y) {
             y = result;
@@ -21,27 +20,35 @@ library Math {
         }
     }
 
-    function mul(uint x, uint y) internal pure returns (uint z) {
+    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         Liquifi._require(y == 0 || (z = x * y) / y == x, Liquifi.Error.A_MUL_OVERFLOW, Liquifi.ErrorArg.A_NONE);
     }
 
-    function mulWithClip(uint x, uint y, uint maxValue) internal pure returns (uint z) {
+    function mulWithClip(
+        uint256 x,
+        uint256 y,
+        uint256 maxValue
+    ) internal pure returns (uint256 z) {
         if (y != 0 && ((z = x * y) / y != x || z > maxValue)) {
             z = maxValue;
         }
     }
 
-    function subWithClip(uint x, uint y) internal pure returns (uint z) {
+    function subWithClip(uint256 x, uint256 y) internal pure returns (uint256 z) {
         if ((z = x - y) > x) {
             return 0;
         }
     }
 
-    function add(uint x, uint y) internal pure returns (uint z) {
+    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
         Liquifi._require((z = x + y) >= x, Liquifi.Error.B_ADD_OVERFLOW, Liquifi.ErrorArg.A_NONE);
     }
 
-    function addWithClip(uint x, uint y, uint maxValue) internal pure returns (uint z) {
+    function addWithClip(
+        uint256 x,
+        uint256 y,
+        uint256 maxValue
+    ) internal pure returns (uint256 z) {
         if ((z = x + y) < x || z > maxValue) {
             z = maxValue;
         }

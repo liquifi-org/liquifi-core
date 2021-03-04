@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >= 0.7.0 <0.8.0;
+pragma solidity >=0.7.0 <0.8.0;
 
-import { GovernanceRouter } from "./interfaces/GovernanceRouter.sol";
-import { PoolFactory } from "./interfaces/PoolFactory.sol";
-import { LiquifiDelayedExchangePool } from "./LiquifiDelayedExchangePool.sol";
+import {GovernanceRouter} from "./interfaces/GovernanceRouter.sol";
+import {PoolFactory} from "./interfaces/PoolFactory.sol";
+import {LiquifiDelayedExchangePool} from "./LiquifiDelayedExchangePool.sol";
 
 contract LiquifiPoolFactory is PoolFactory {
     address private immutable weth;
     address private immutable governanceRouter;
-    
+
     mapping(address => mapping(address => address)) private poolMap;
     address[] public override pools;
 
-    constructor(address _governanceRouter) public {
+    constructor(address _governanceRouter) {
         governanceRouter = _governanceRouter;
         weth = address(GovernanceRouter(_governanceRouter).weth());
         if (address(GovernanceRouter(_governanceRouter).poolFactory()) == address(0)) {
@@ -29,9 +29,15 @@ contract LiquifiPoolFactory is PoolFactory {
         bool aIsWETH = token1 == _weth;
         pool = poolMap[token1][token2];
         if (pool == address(0)) {
-            pool = address(new LiquifiDelayedExchangePool{ /* make pool address deterministic */ salt: bytes32(uint(1))}(
-                token1, token2, aIsWETH, governanceRouter, pools.length
-            ));
+            pool = address(
+                new LiquifiDelayedExchangePool{salt: bytes32(uint256(1))}( /* make pool address deterministic */
+                    token1,
+                    token2,
+                    aIsWETH,
+                    governanceRouter,
+                    pools.length
+                )
+            );
             pools.push(pool);
             poolMap[token1][token2] = pool;
             poolMap[token2][token1] = pool;
@@ -39,11 +45,11 @@ contract LiquifiPoolFactory is PoolFactory {
         }
     }
 
-    function findPool(address token1, address token2) external override view returns (address pool) {
+    function findPool(address token1, address token2) external view override returns (address pool) {
         return poolMap[token1][token2];
     }
 
-    function getPoolCount() external override view returns (uint) {
+    function getPoolCount() external view override returns (uint256) {
         return pools.length;
     }
 }
