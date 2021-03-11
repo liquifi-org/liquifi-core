@@ -61,4 +61,16 @@ Run deploy script:
 npm run deploy
 ```
 
+```sh
+npm run deploy_{networkID}
+```
 
+## Networks
+
+|ID|Name|
+|----|-------------|
+| 1  | Mainnet     |
+| 3  | Ropsten     |
+| 4  | Rinkeby     |
+| 56 | BSC Mainnet |
+| 97 | BSC Testnet |

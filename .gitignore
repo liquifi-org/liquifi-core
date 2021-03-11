@@ -7,3 +7,5 @@ coverage
 coverage.json
 .vscode
 bin
+test-scripts
+/contract-addresses.json

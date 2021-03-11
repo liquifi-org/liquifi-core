@@ -14,6 +14,8 @@
     "deploy_1": "npx buidler run --network mainnet scripts/deploy.ts",
     "deploy_3": "npx buidler run --network ropsten scripts/deploy.ts",
     "deploy_4": "npx buidler run --network rinkeby scripts/deploy.ts",
+    "deploy_97": "npx buidler run --network bsctestnet scripts/deploy.ts",
+    "deploy_56": "npx buidler run --network bscmainnet scripts/deploy.ts",
     "size": "buidler size-contracts"
   },
   "repository": {
