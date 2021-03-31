@@ -29,6 +29,18 @@ const config: BuidlerConfig = {
             url: 'http://mainnet.node.liquifi.org:8545',
             accounts: [privateKey]
         },
+        bsctestnet: {
+            url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
+            chainId: 97,
+            gasPrice: 20000000000,
+            accounts: [privateKey],
+        },
+        bscmainnet: {
+            url: "https://bsc-dataseed.binance.org/",
+            chainId: 56,
+            gasPrice: 20000000000,
+            accounts: [privateKey]
+        },
         coverage: {
             url: 'http://localhost:8555'
         }
