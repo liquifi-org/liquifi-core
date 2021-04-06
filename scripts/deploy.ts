@@ -68,7 +68,7 @@ async function deployFactory(governanceRouterAddress: string) {
 
 async function deployRegister(governanceRouterAddress: string) {
     const LiquifiPoolRegister = await ethers.getContractFactory("LiquifiPoolRegister");
-    const liquifiPoolRegister = await LiquifiPoolRegister.deploy(governanceRouterAddress);
+    const liquifiPoolRegister = await LiquifiPoolRegister.deploy(governanceRouterAddress, BigNumber.from(10).pow(18).mul(100000));
     await liquifiPoolRegister.deployed();
     console.log("LiquiFi Pool Register address:", liquifiPoolRegister.address);
     ADDR['register'] = liquifiPoolRegister.address

@@ -13,17 +13,33 @@ import { GovernanceRouter } from "./interfaces/GovernanceRouter.sol";
 contract LiquifiPoolRegister is PoolRegister  {
     PoolFactory public immutable override factory;
     WETH public immutable override weth;
+	ERC20 public immutable lqf;
+	
+	uint public immutable tokensRequiredToCreateDistributionPool; 
 
     using Math for uint256;
 
+    struct DistributionPool {
+		address owner;
+		address tokenIn;
+		address tokenOut;
+		uint balance;
+		uint minDistributionPrice;
+		uint8 coverageRatio;
+    }
+	
+	mapping(/*pool*/address => DistributionPool) public distributionPools;
+	
     modifier beforeTimeout(uint timeout) {
         require(timeout >= block.timestamp, 'LIQUIFI: EXPIRED CALL');
         _;
     }
 
-    constructor (address _governanceRouter) public {
+    constructor (address _governanceRouter, uint _tokensRequiredToCreateDistributionPool) public {
         factory = GovernanceRouter(_governanceRouter).poolFactory();
         weth = GovernanceRouter(_governanceRouter).weth();
+		lqf = ERC20(GovernanceRouter(_governanceRouter).minter());
+		tokensRequiredToCreateDistributionPool = _tokensRequiredToCreateDistributionPool;
     }
 
     receive() external payable {
@@ -192,6 +208,8 @@ contract LiquifiPoolRegister is PoolRegister  {
         orderId = DelayedExchangePool(pool).addOrder(to, orderFlags, prevByStopLoss, prevByTimeout, minAmountOut, time);
         // TODO: add optional checking if prevByStopLoss/prevByTimeout matched provided values
         DelayedSwap(tokenIn, amountIn, tokenOut, minAmountOut, to, convertETH, uint16(time), uint64(orderId));
+		
+		_counterSwap(pool, tokenOut, amountIn, minAmountOut, time + block.timestamp);
     }
 
     function delayedSwap(
@@ -326,5 +344,125 @@ contract LiquifiPoolRegister is PoolRegister  {
         uint8 instantSwapFee
     ) {
         instantSwapFee = uint8(packed >> 88);
+    }
+
+    function setupDistributionPool(
+        address tokenIn, address tokenOut, uint initialBalance, uint minDistributionPrice, uint8 coverageRatio
+    ) external override {
+        require(tokenIn != address(0), "LIQUIFI: INVALID TOKEN IN");
+        require(tokenOut != address(0), "LIQUIFI: INVALID TOKEN OUT");
+		
+		smartTransferFrom(address(lqf), address(this), tokensRequiredToCreateDistributionPool, ConvertETH.NONE);
+		if(initialBalance > 0)
+			smartTransferFrom(tokenIn, address(this), initialBalance, ConvertETH.NONE);
+
+        (address tokenA, address tokenB) = properOrder(tokenIn, tokenOut) ? (tokenIn, tokenOut) : (tokenOut, tokenIn);
+		address pool = factory.findPool(tokenA, tokenB);
+        require(pool != address(0), "LIQIFI: INVALID_DISTRIBUTION_POOL");
+
+		DistributionPool memory distributionPool = distributionPools[pool];
+        require(distributionPool.owner == address(0), "LIQIFI: DPOOL_ALREADY_EXISTS");
+		
+		distributionPool.owner = msg.sender;
+		distributionPool.tokenIn = tokenIn;
+		distributionPool.tokenOut = tokenOut;
+		distributionPool.balance = initialBalance;
+		distributionPool.minDistributionPrice = minDistributionPrice;
+		distributionPool.coverageRatio = coverageRatio;
+		
+		distributionPools[pool] = distributionPool;
+    }
+
+    function updateDistributionPool(
+        address tokenIn, address tokenOut, uint addedBalance, uint minDistributionPrice, uint8 coverageRatio
+    ) external override {
+        require(tokenIn != address(0), "LIQUIFI: INVALID TOKEN IN");
+        require(tokenOut != address(0), "LIQUIFI: INVALID TOKEN OUT");
+		
+		if(addedBalance > 0)
+			smartTransferFrom(tokenIn, address(this), addedBalance, ConvertETH.NONE);
+
+        (address tokenA, address tokenB) = properOrder(tokenIn, tokenOut) ? (tokenIn, tokenOut) : (tokenOut, tokenIn);
+		address pool = factory.findPool(tokenA, tokenB);
+        require(pool != address(0), "LIQIFI: INVALID_DISTRIBUTION_POOL");
+
+		DistributionPool memory distributionPool = distributionPools[pool];
+        require(distributionPool.owner == msg.sender, "LIQIFI: SENDER_IS_NOT_DPOOL_OWNER");
+		
+		distributionPools[pool].balance += addedBalance;
+		distributionPools[pool].minDistributionPrice = minDistributionPrice;
+		distributionPools[pool].coverageRatio = coverageRatio;
+    }
+	
+    function removeDistributionPool(
+        address tokenIn, address tokenOut
+    ) external override {
+        require(tokenIn != address(0), "LIQUIFI: INVALID TOKEN IN");
+        require(tokenOut != address(0), "LIQUIFI: INVALID TOKEN OUT");
+
+        (address tokenA, address tokenB) = properOrder(tokenIn, tokenOut) ? (tokenIn, tokenOut) : (tokenOut, tokenIn);
+		address pool = factory.findPool(tokenA, tokenB);
+        require(pool != address(0), "LIQIFI: INVALID_DISTRIBUTION_POOL");
+
+		DistributionPool memory distributionPool = distributionPools[pool];
+        require(distributionPool.owner == msg.sender, "LIQIFI: SENDER_IS_NOT_DPOOL_OWNER");
+		
+		smartTransfer(address(lqf), msg.sender, tokensRequiredToCreateDistributionPool);
+		if(distributionPool.balance > 0)
+			smartTransfer(tokenIn, msg.sender, distributionPool.balance);
+		
+		delete distributionPools[pool];
+    }
+
+    function _counterSwap(
+        address pool, address tokenIn, uint amountOut, uint minAmountIn, uint timeout
+    ) private {
+
+		DistributionPool memory distributionPool = distributionPools[pool];
+
+		if(distributionPool.tokenIn == tokenIn) {
+
+			uint availableBalanceIn;
+			uint availableBalanceOut;
+			{
+				(uint availableBalance, , ) = DelayedExchangePool(pool).processDelayedOrders();
+				uint availableBalanceA = uint128(availableBalance >> 128);
+				uint availableBalanceB = uint128(availableBalance);
+				(availableBalanceIn, availableBalanceOut) = properOrder(tokenIn, distributionPool.tokenOut) ? 
+						(availableBalanceA, availableBalanceB) : (availableBalanceB, availableBalanceA);
+			}
+			
+			if (availableBalanceIn != 0 && availableBalanceOut != 0) {
+				if(availableBalanceOut.mul(1000000) / availableBalanceIn > distributionPool.minDistributionPrice) {
+					uint amountIn = distributionPool.balance.min(amountOut.mul(availableBalanceIn) / 
+							availableBalanceOut).mul(distributionPool.coverageRatio) >> 8;
+					if(amountIn >= minAmountIn) {
+						uint minAmountOut = amountIn.mul(distributionPool.minDistributionPrice) / 1000000;
+						address to = distributionPool.owner;
+						_delayedSwapInternal(tokenIn, amountIn, distributionPool.tokenOut, minAmountOut, to, timeout, 0, 0);
+						distributionPools[pool].balance -= amountIn;
+					}
+				}
+			}
+		}
+    }
+
+    function _delayedSwapInternal(
+        address tokenIn, uint amountIn, address tokenOut, uint minAmountOut, address to, uint time, 
+        uint prevByStopLoss, uint prevByTimeout
+    ) private beforeTimeout(time) returns (uint orderId) {
+        time -= block.timestamp; // reuse variable to reduce stack size
+
+        address pool = factory.findPool(tokenIn, tokenOut);
+        require(pool != address(0), "LIQIFI: DELAYED_SWAP_ON_INVALID_POOL");
+        smartTransfer(tokenIn, pool, amountIn);
+
+        uint orderFlags = 0;
+        if (properOrder(tokenIn, tokenOut)) {
+            orderFlags |= 1; // IS_TOKEN_A
+        }
+        orderId = DelayedExchangePool(pool).addOrder(to, orderFlags, prevByStopLoss, prevByTimeout, minAmountOut, time);
+        // TODO: add optional checking if prevByStopLoss/prevByTimeout matched provided values
+        DelayedSwap(tokenIn, amountIn, tokenOut, minAmountOut, to, ConvertETH.NONE, uint16(time), uint64(orderId));
     }
 }

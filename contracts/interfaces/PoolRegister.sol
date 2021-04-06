@@ -56,4 +56,17 @@ interface PoolRegister {
         uint[] calldata breaksHistory,
         uint timeout
     ) external returns (address to, uint amountOut, uint amountRefund);
+
+    function setupDistributionPool(
+        address tokenIn, address tokenOut, uint initialBalance, uint minDistributionPrice, uint8 coverageRatio
+    ) external;
+
+    function updateDistributionPool(
+        address tokenIn, address tokenOut, uint addedBalance, uint minDistributionPrice, uint8 coverageRatio
+    ) external;
+
+    function removeDistributionPool(
+        address tokenIn, address tokenOut
+    ) external;
+	
 }
