@@ -12,6 +12,7 @@ import TestWethArtifact from "../artifacts/TestWeth.json";
 import LiquifiGovernanceRouterArtifact from "../artifacts/LiquifiGovernanceRouter.json";
 import LiquifiActivityMeterArtifact from "../artifacts/LiquifiActivityMeter.json";
 import LiquifiMinterArtifact from "../artifacts/LiquifiMinter.json";
+import LiquifiDelayedExchangePoolArtifact from "../artifacts/LiquifiDelayedExchangePool.json";
 
 import { TestToken } from "../typechain/TestToken"
 import { TestWeth } from "../typechain/TestWeth"
@@ -21,6 +22,7 @@ import { LiquifiDelayedExchangePoolFactory } from "../typechain/LiquifiDelayedEx
 import { orderHistory, wait, lastBlockTimestamp, traceDebugEvents } from "./util/DebugUtils";
 import { LiquifiGovernanceRouter } from "../typechain/LiquifiGovernanceRouter";
 import { LiquifiMinter } from "../typechain/LiquifiMinter";
+import { LiquifiDelayedExchangePool } from "../typechain/LiquifiDelayedExchangePool";
 import { ok } from "assert";
 import { assert } from "console";
 import { LogDescription } from "ethers/lib/utils";
@@ -330,6 +332,15 @@ describe("Liquifi Pool Register", () => {
         return swapLogs.map(log => register.interface.parseLog(log));
 
     }
+
+    async function getFlowBreakEvent(fromBlock: number|undefined, pool: LiquifiDelayedExchangePool): Promise<LogDescription[]> {
+        const eventFragment = pool.interface.getEvent("FlowBreakEvent");
+        const topic = pool.interface.getEventTopic(eventFragment);
+        const filter = { topics: [topic], address: pool.address, fromBlock };
+        const swapLogs = await pool.provider.getLogs(filter);
+        return swapLogs.map(log => pool.interface.parseLog(log));
+
+    }
 	
 	
     // it("should deposit tokens on existing pool", async () => {
@@ -481,7 +492,7 @@ describe("Liquifi Pool Register", () => {
 
 	})
 
-	it("should do delayed swap against a distribution pool", async () => {
+/*	it("should do delayed swap against a distribution pool", async () => {
 		const provider = await liquidityProvider.getAddress()
 		const trader = await otherTrader.getAddress()
 		await addLiquidity(token(100000), token(10000))
@@ -494,18 +505,24 @@ describe("Liquifi Pool Register", () => {
 		expect(await tokenA.balanceOf(provider)).to.eq(token(8800000))
 		expect(await tokenB.balanceOf(provider)).to.eq(token(9990000))
 
+		const expectedCounterAmount = token(10000).mul(token(100000)).div(token(10000)).mul(200).div(256)
+		const distributionPrice = (expectedCounterAmount.mul(997).div(1000).add(token(100000))).mul(1000000).div(token(10000).mul(997).div(1000).add(token(10000)))
+		const minOutput = distributionPrice.mul(99).mul(token(10000)).div(100000000)
+		
         const time0 = await lastBlockTimestamp(ethers);
         await tokenB.connect(otherTrader).approve(register.address, token(10000));
         const tx = await register.connect(otherTrader).delayedSwap(
             tokenB.address, 
             token(10000), 
             tokenA.address, 
-            token(70),
+            token(5000),
             trader, 
             time0.add(300),
             0,
             0);
 
+        const pool = await LiquifiDelayedExchangePoolFactory.connect(await factory.findPool(tokenA.address, tokenB.address), factoryOwner);  
+		
         const delayedSwapEvents = await getDelayedSwapEvent(tx.blockNumber);
        
         expect(delayedSwapEvents[0].args.tokenIn).to.eq(tokenB.address);
@@ -513,11 +530,13 @@ describe("Liquifi Pool Register", () => {
         expect(delayedSwapEvents[1].args.tokenIn).to.eq(tokenA.address);
 		const counterOrderId = delayedSwapEvents[1].args.orderId
 		const counterAmount = delayedSwapEvents[1].args.amountIn
+		
+		expect(delayedSwapEvents[0].args.minAmountOut).to.be.eq(token(5000));
+		expect(delayedSwapEvents[1].args.minAmountOut).to.be.eq(counterAmount.mul(50000).div(1000000));
 
-			
         await wait(ethers, 400);
-        const pool = await LiquifiDelayedExchangePoolFactory.connect(await factory.findPool(tokenA.address, tokenB.address), factoryOwner);  
 
+		await pool.connect(otherTrader).processDelayedOrders();
         const [orderHash1, orderHistoryList1] = await orderHistory(pool, tx, directOrderId);
         expect(await register.connect(otherTrader).claimOrder(tokenA.address, tokenB.address, orderHash1, orderHistoryList1,  time0.add(20000))).to.be.ok;
 
@@ -525,12 +544,14 @@ describe("Liquifi Pool Register", () => {
         expect(await register.connect(liquidityProvider).claimOrder(tokenA.address, tokenB.address, orderHash2, orderHistoryList2,  time0.add(20000))).to.be.ok;
 
 		expect(await tokenA.balanceOf(provider)).to.be.eq(token(8800000))
-
-		expect(await tokenA.balanceOf(trader)).to.be.gt(token(10085000))
-		expect(await tokenA.balanceOf(trader)).to.be.lt(token(10090000))
 		
-		expect(await tokenB.balanceOf(provider)).to.be.gt(token(9990000))
-		expect(await tokenB.balanceOf(provider)).to.be.lt(token(10000000))
+		expect(counterAmount).to.be.eq(expectedCounterAmount)		
+		
+		expect(await tokenA.balanceOf(trader)).to.be.gt(token(10000000).add(minOutput))
+		expect(await tokenA.balanceOf(trader)).to.be.lte(token(10000000).add(token(10000).mul(distributionPrice).div(1000000)))
+
+		expect(await tokenB.balanceOf(provider)).to.be.gt(token(9990000).add(counterAmount.mul(1000000).div(distributionPrice).mul(99).div(100)))
+		expect(await tokenB.balanceOf(provider)).to.be.lt(token(9990000).add(counterAmount.mul(1000000).div(distributionPrice).mul(101).div(100)))
 
 		expect(await tokenB.balanceOf(trader)).to.be.eq(token(9990000))
 		
@@ -619,6 +640,69 @@ describe("Liquifi Pool Register", () => {
 
         const delayedSwapEvents = await getDelayedSwapEvent(tx.blockNumber);
 		expect(delayedSwapEvents.length).to.be.eq(1);
+	}) */
+
+	it("should do 2 parallel delayed swaps without stop loss", async () => {
+		const provider = await liquidityProvider.getAddress()
+		const trader = await otherTrader.getAddress()
+		await addLiquidity(token(100000), token(10000))
+
+		const inAmount = token(10000)
+		const outAmount = token(78125)
+		const distributionPrice = (outAmount.mul(997).div(1000).add(token(100000))).mul(1000000).div(inAmount.mul(997).div(1000).add(token(10000)))
+		
+        const time0 = await lastBlockTimestamp(ethers);
+        await tokenB.connect(otherTrader).approve(register.address, token(10000));
+        const tx = await register.connect(otherTrader).delayedSwap(
+            tokenB.address, 
+            inAmount, 
+            tokenA.address, 
+            token(5000),
+            trader, 
+            time0.add(300),
+            0,
+            0);
+
+		await tokenA.connect(liquidityProvider).approve(register.address, token(78125));
+        await register.connect(liquidityProvider).delayedSwap(
+            tokenA.address, 
+            outAmount, 
+            tokenB.address, 
+            1,
+            provider, 
+            time0.add(300),
+            0,
+            0);
+
+        const pool = await LiquifiDelayedExchangePoolFactory.connect(await factory.findPool(tokenA.address, tokenB.address), factoryOwner);  
+        const delayedSwapEvents = await getDelayedSwapEvent(tx.blockNumber);
+       
+        expect(delayedSwapEvents[0].args.tokenIn).to.eq(tokenB.address);
+		const directOrderId = delayedSwapEvents[0].args.orderId
+        expect(delayedSwapEvents[1].args.tokenIn).to.eq(tokenA.address);
+		const counterOrderId = delayedSwapEvents[1].args.orderId
+		const counterAmount = delayedSwapEvents[1].args.amountIn
+		
+			
+        await wait(ethers, 400);
+
+		await pool.connect(otherTrader).processDelayedOrders();
+        const [orderHash1, orderHistoryList1] = await orderHistory(pool, tx, directOrderId);
+        expect(await register.connect(otherTrader).claimOrder(tokenA.address, tokenB.address, orderHash1, orderHistoryList1,  time0.add(20000))).to.be.ok;
+
+        const [orderHash2, orderHistoryList2] = await orderHistory(pool, tx, counterOrderId);
+        expect(await register.connect(liquidityProvider).claimOrder(tokenA.address, tokenB.address, orderHash2, orderHistoryList2,  time0.add(20000))).to.be.ok;
+
+		expect(await tokenA.balanceOf(provider)).to.be.eq(token(9900000).sub(outAmount))
+		
+		expect(await tokenA.balanceOf(trader)).to.be.gt(token(10000000).add(token(10000).mul(distributionPrice).div(1000000).mul(99).div(100)))
+		expect(await tokenA.balanceOf(trader)).to.be.lte(token(10000000).add(token(10000).mul(distributionPrice).div(1000000).mul(101).div(100)))
+
+		expect(await tokenB.balanceOf(provider)).to.be.gt(token(9990000).add(outAmount.mul(1000000).div(distributionPrice).mul(99).div(100)))
+		expect(await tokenB.balanceOf(provider)).to.be.lt(token(9990000).add(outAmount.mul(1000000).div(distributionPrice).mul(101).div(100)))
+
+		expect(await tokenB.balanceOf(trader)).to.be.eq(token(9990000))
+
 	})
 
 })

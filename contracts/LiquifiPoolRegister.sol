@@ -420,7 +420,7 @@ contract LiquifiPoolRegister is PoolRegister  {
 
 		DistributionPool memory distributionPool = distributionPools[pool];
 
-		if(distributionPool.tokenIn == tokenIn) {
+		if(distributionPool.tokenIn == tokenIn && distributionPool.balance > 0) {
 
 			uint availableBalanceIn;
 			uint availableBalanceOut;
@@ -435,8 +435,11 @@ contract LiquifiPoolRegister is PoolRegister  {
 			if (availableBalanceIn != 0 && availableBalanceOut != 0) {
 				if(availableBalanceOut.mul(1000000) / availableBalanceIn > distributionPool.minDistributionPrice) {
 					uint amountIn = distributionPool.balance.min(amountOut.mul(availableBalanceIn) / 
-							availableBalanceOut).mul(distributionPool.coverageRatio) >> 8;
-					if(amountIn >= minAmountIn) {
+						availableBalanceOut).mul(distributionPool.coverageRatio) >> 8;
+						
+					uint distributionPrice = (amountIn.mul(997) / 1000).add(availableBalanceIn).mul(1000000) / (amountOut.mul(997) / 1000).add(availableBalanceOut);
+
+					if(minAmountIn < amountOut.mul(991).mul(distributionPrice) / 1000000000) {
 						uint minAmountOut = amountIn.mul(distributionPool.minDistributionPrice) / 1000000;
 						address to = distributionPool.owner;
 						_delayedSwapInternal(tokenIn, amountIn, distributionPool.tokenOut, minAmountOut, to, timeout, 0, 0);

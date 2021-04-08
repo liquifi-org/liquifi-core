@@ -16,7 +16,8 @@
     "deploy_4": "npx buidler run --network rinkeby scripts/deploy.ts",
     "deploy_97": "npx buidler run --network bsctestnet scripts/deploy.ts",
     "deploy_56": "npx buidler run --network bscmainnet scripts/deploy.ts",
-    "size": "buidler size-contracts"
+    "size": "buidler size-contracts",
+    "build-contracts": "sol-merger \"./contracts/*.sol\" ./build"
   },
   "repository": {
     "type": "git",
@@ -37,6 +38,7 @@
     "chai": "^4.2.0",
     "ethereum-waffle": "^3.0.2",
     "ethers": "^5.0.8",
+    "sol-merger": "^3.1.0",
     "solc": "0.7.0",
     "solidity-coverage": "^0.7.10",
     "ts-node": "^8.10.2",
