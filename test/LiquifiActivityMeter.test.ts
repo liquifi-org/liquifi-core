@@ -49,7 +49,7 @@ describe("Liquifi Activity Meter", () => {
     
         tokenA = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token A", "TKA", [await otherTrader.getAddress()]]) as TestToken
         tokenB = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token B", "TKB", [await otherTrader.getAddress()]]) as TestToken
-        if (BigNumber.from(tokenA.address).lt(BigNumber.from(tokenB.address))) {
+        if (BigNumber.from(tokenA.address).gt(BigNumber.from(tokenB.address))) {
             [tokenA, tokenB] = [tokenB, tokenA];
         }
         weth = tokenA;
@@ -58,7 +58,7 @@ describe("Liquifi Activity Meter", () => {
         activityMeter = await deployContract(factoryOwner, LiquifiActivityMeterArtifact, [governanceRouter.address]) as LiquifiActivityMeter;
         minter = await deployContract(factoryOwner, LiquifiMinterArtifact, [governanceRouter.address]) as LiquifiMinter;
         await deployContract(factoryOwner, LiquifiPoolFactoryArtifact, [governanceRouter.address], { gasLimit: 9500000 });
-        register = await deployContract(factoryOwner, LiquifiPoolRegisterArtifact, [governanceRouter.address]) as LiquifiPoolRegister
+        register = await deployContract(factoryOwner, LiquifiPoolRegisterArtifact, [governanceRouter.address, token(100000)]) as LiquifiPoolRegister
     })
 
     it("should deploy all contracts", async () => {
@@ -386,6 +386,14 @@ describe("Liquifi Activity Meter", () => {
 
         //await events;
     });
+
+    // it.only("should clip in mul", async () => {
+    //     const clipped = await activityMeter.mulWithClip(BigNumber.from(5), BigNumber.from(10), BigNumber.from(20));
+    //     expect(clipped).to.be.eq(BigNumber.from(20));
+
+    //     const clippedBig = await activityMeter.mulWithClip(BigNumber.from(1).shl(200), BigNumber.from(1).shl(200), BigNumber.from(1).shl(250));
+    //     expect(clippedBig).to.be.eq(BigNumber.from(1).shl(250));
+    // })
 
     async function mintEvents(fromBlock: number | undefined): Promise<utils.LogDescription[]> {
         const eventFragment = minter.interface.getEvent("Mint");

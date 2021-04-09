@@ -13,7 +13,7 @@ if (process.env.REPORT_GAS) {
 
 const config: BuidlerConfig = {
     solc: {
-        version: "0.7.0",
+        version: "0.7.6",
         optimizer: { enabled: true, runs: 2000 }
     },
     networks: {

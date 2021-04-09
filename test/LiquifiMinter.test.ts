@@ -53,7 +53,7 @@ describe("Liquifi Minter", () => {
         activityMeter = await deployContract(factoryOwner, LiquifiActivityMeterArtifact, [governanceRouter.address]) as LiquifiActivityMeter;
         minter = await deployContract(factoryOwner, LiquifiMinterArtifact, [governanceRouter.address]) as LiquifiMinter;
         await deployContract(factoryOwner, LiquifiPoolFactoryArtifact, [governanceRouter.address], { gasLimit: 9500000 });
-        register = await deployContract(factoryOwner, LiquifiPoolRegisterArtifact, [governanceRouter.address]) as LiquifiPoolRegister
+        register = await deployContract(factoryOwner, LiquifiPoolRegisterArtifact, [governanceRouter.address, token(100000)]) as LiquifiPoolRegister
     })
 
     it("should deploy all contracts", async () => {

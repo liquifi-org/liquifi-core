@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity = 0.7.0;
+pragma solidity = 0.7.6;
 
 import { Math } from "./libraries/Math.sol";
 import { Liquifi } from "./libraries/Liquifi.sol";
@@ -513,16 +513,22 @@ contract LiquifiDelayedExchangePool is LiquifiLiquidityPool, DelayedExchangePool
                 order = orders[_state.firstByTimeout];
                 if (order.timeout <= _breakTime) {
                     _closeOrder(_state.firstByTimeout, order, BreakReason.ORDER_CLOSED, _breakTime, _balances, _state, claim);
-                } else if (_state.firstByTokenAStopLoss != 0 && availableBalanceB > 0 &&
-                    ((order = orders[_state.firstByTokenAStopLoss]).amountIn * _state.notFee / 1000) * availableBalanceB
-                        <= availableBalanceA * order.stopLossAmount) {
-                    _closeOrder(_state.firstByTokenAStopLoss, order, BreakReason.ORDER_CLOSED_BY_STOP_LOSS, 
-                        _breakTime, _balances, _state, claim); 
-                } else if (_state.firstByTokenBStopLoss != 0 && availableBalanceA > 0 &&
-                    ((order = orders[_state.firstByTokenBStopLoss]).amountIn * _state.notFee / 1000) * availableBalanceA
-                        <= availableBalanceB * order.stopLossAmount) {
-                    _closeOrder(_state.firstByTokenBStopLoss, order, BreakReason.ORDER_CLOSED_BY_STOP_LOSS, 
-                        _breakTime, _balances, _state, claim);
+                } else {
+                    order = orders[_state.firstByTokenAStopLoss];
+                    if (_state.firstByTokenAStopLoss != 0 && availableBalanceB > 0 &&
+                        (order.amountIn * _state.notFee / 1000) * availableBalanceB
+                            <= availableBalanceA * order.stopLossAmount) {
+                        _closeOrder(_state.firstByTokenAStopLoss, order, BreakReason.ORDER_CLOSED_BY_STOP_LOSS, 
+                            _breakTime, _balances, _state, claim); 
+                    } else {
+                        order = orders[_state.firstByTokenBStopLoss];
+                        if (_state.firstByTokenBStopLoss != 0 && availableBalanceA > 0 &&
+                            (order.amountIn * _state.notFee / 1000) * availableBalanceA
+                                <= availableBalanceB * order.stopLossAmount) {
+                            _closeOrder(_state.firstByTokenBStopLoss, order, BreakReason.ORDER_CLOSED_BY_STOP_LOSS, 
+                                _breakTime, _balances, _state, claim);
+                        }
+                    }
                 }
             }
             //update nextBreakTime

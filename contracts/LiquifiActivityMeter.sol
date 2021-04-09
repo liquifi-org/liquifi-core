@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity = 0.7.0;
+pragma solidity = 0.7.6;
 
 import { ActivityMeter } from "./interfaces/ActivityMeter.sol";
 import { GovernanceRouter } from "./interfaces/GovernanceRouter.sol";
@@ -58,6 +58,10 @@ contract LiquifiActivityMeter is ActivityMeter {
         (timeZero, miningPeriod)  = GovernanceRouter(_governanceRouter).schedule();
         governanceRouter = GovernanceRouter(_governanceRouter);
     }
+
+    // function mulWithClip(uint x, uint y, uint maxValue) external pure returns (uint z) {
+    //     return x.mulWithClip(y, maxValue);
+    // }
 
     function effectivePeriod(uint effectiveTime) public override view returns (uint periodNumber, uint quantaElapsed) {
         uint _miningPeriod = miningPeriod;

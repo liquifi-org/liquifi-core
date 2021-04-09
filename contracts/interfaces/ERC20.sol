@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity = 0.7.0;
+pragma solidity = 0.7.6;
 
 interface ERC20 {
     function name() external view returns (string memory);
