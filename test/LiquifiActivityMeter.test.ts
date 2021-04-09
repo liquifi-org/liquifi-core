@@ -49,7 +49,7 @@ describe("Liquifi Activity Meter", () => {
     
         tokenA = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token A", "TKA", [await otherTrader.getAddress()]]) as TestToken
         tokenB = await deployContract(liquidityProvider, TestTokenArtifact, [token(1000), "Token B", "TKB", [await otherTrader.getAddress()]]) as TestToken
-        if (BigNumber.from(tokenA.address).lt(BigNumber.from(tokenB.address))) {
+        if (BigNumber.from(tokenA.address).gt(BigNumber.from(tokenB.address))) {
             [tokenA, tokenB] = [tokenB, tokenA];
         }
         weth = tokenA;
@@ -58,7 +58,7 @@ describe("Liquifi Activity Meter", () => {
         activityMeter = await deployContract(factoryOwner, LiquifiActivityMeterArtifact, [governanceRouter.address]) as LiquifiActivityMeter;
         minter = await deployContract(factoryOwner, LiquifiMinterArtifact, [governanceRouter.address]) as LiquifiMinter;
         await deployContract(factoryOwner, LiquifiPoolFactoryArtifact, [governanceRouter.address], { gasLimit: 9500000 });
-        register = await deployContract(factoryOwner, LiquifiPoolRegisterArtifact, [governanceRouter.address]) as LiquifiPoolRegister
+        register = await deployContract(factoryOwner, LiquifiPoolRegisterArtifact, [governanceRouter.address, token(100000)]) as LiquifiPoolRegister
     })
 
     it("should deploy all contracts", async () => {

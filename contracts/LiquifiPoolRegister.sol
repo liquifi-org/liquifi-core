@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity = 0.7.0;
+pragma solidity = 0.7.6;
 
 import { PoolFactory } from "./interfaces/PoolFactory.sol";
 import { DelayedExchangePool } from "./interfaces/DelayedExchangePool.sol";

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity = 0.7.0;
+pragma solidity = 0.7.6;
 import { Liquifi } from "./Liquifi.sol";
 
 library Math {
@@ -26,13 +26,15 @@ library Math {
     }
 
     function mulWithClip(uint x, uint y, uint maxValue) internal pure returns (uint z) {
-        if (y != 0 && ((z = x * y) / y != x || z > maxValue)) {
+        z = x * y;
+        if (y != 0 && (z / y != x || z > maxValue)) {
             z = maxValue;
         }
     }
 
     function subWithClip(uint x, uint y) internal pure returns (uint z) {
-        if ((z = x - y) > x) {
+        z = x - y;
+        if (z > x) {
             return 0;
         }
     }
@@ -42,7 +44,8 @@ library Math {
     }
 
     function addWithClip(uint x, uint y, uint maxValue) internal pure returns (uint z) {
-        if ((z = x + y) < x || z > maxValue) {
+        z = x + y;
+        if (z < x || z > maxValue) {
             z = maxValue;
         }
     }
