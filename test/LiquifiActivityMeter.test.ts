@@ -387,6 +387,14 @@ describe("Liquifi Activity Meter", () => {
         //await events;
     });
 
+    // it.only("should clip in mul", async () => {
+    //     const clipped = await activityMeter.mulWithClip(BigNumber.from(5), BigNumber.from(10), BigNumber.from(20));
+    //     expect(clipped).to.be.eq(BigNumber.from(20));
+
+    //     const clippedBig = await activityMeter.mulWithClip(BigNumber.from(1).shl(200), BigNumber.from(1).shl(200), BigNumber.from(1).shl(250));
+    //     expect(clippedBig).to.be.eq(BigNumber.from(1).shl(250));
+    // })
+
     async function mintEvents(fromBlock: number | undefined): Promise<utils.LogDescription[]> {
         const eventFragment = minter.interface.getEvent("Mint");
         const topic = minter.interface.getEventTopic(eventFragment);

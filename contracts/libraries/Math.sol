@@ -26,15 +26,13 @@ library Math {
     }
 
     function mulWithClip(uint x, uint y, uint maxValue) internal pure returns (uint z) {
-        z = x * y;
-        if (y != 0 && (z / y != x || z > maxValue)) {
+        if (y != 0 && ((z = x * y) / y != x || z > maxValue)) {
             z = maxValue;
         }
     }
 
     function subWithClip(uint x, uint y) internal pure returns (uint z) {
-        z = x - y;
-        if (z > x) {
+        if ((z = x - y) > x) {
             return 0;
         }
     }
@@ -44,8 +42,7 @@ library Math {
     }
 
     function addWithClip(uint x, uint y, uint maxValue) internal pure returns (uint z) {
-        z = x + y;
-        if (z < x || z > maxValue) {
+        if ((z = x + y) < x || z > maxValue) {
             z = maxValue;
         }
     }

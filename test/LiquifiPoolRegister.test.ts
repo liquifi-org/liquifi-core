@@ -716,5 +716,4 @@ describe("Liquifi Pool Register", () => {
 		expect(await token2.balanceOf(trader)).to.be.eq(token(9990000))
 
 	})
-
 })

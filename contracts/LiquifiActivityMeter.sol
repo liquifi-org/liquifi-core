@@ -59,6 +59,10 @@ contract LiquifiActivityMeter is ActivityMeter {
         governanceRouter = GovernanceRouter(_governanceRouter);
     }
 
+    // function mulWithClip(uint x, uint y, uint maxValue) external pure returns (uint z) {
+    //     return x.mulWithClip(y, maxValue);
+    // }
+
     function effectivePeriod(uint effectiveTime) public override view returns (uint periodNumber, uint quantaElapsed) {
         uint _miningPeriod = miningPeriod;
         uint _timeZero = timeZero;
