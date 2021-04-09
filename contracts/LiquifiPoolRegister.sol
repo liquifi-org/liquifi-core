@@ -26,6 +26,7 @@ contract LiquifiPoolRegister is PoolRegister  {
 		uint balance;
 		uint minDistributionPrice;
 		uint8 coverageRatio;
+		uint minDealAmount;
     }
 	
 	mapping(/*pool*/address => DistributionPool) public distributionPools;
@@ -347,7 +348,7 @@ contract LiquifiPoolRegister is PoolRegister  {
     }
 
     function setupDistributionPool(
-        address tokenIn, address tokenOut, uint initialBalance, uint minDistributionPrice, uint8 coverageRatio
+        address tokenIn, address tokenOut, uint initialBalance, uint minDistributionPrice, uint8 coverageRatio, uint minDealAmount
     ) external override {
         require(tokenIn != address(0), "LIQUIFI: INVALID TOKEN IN");
         require(tokenOut != address(0), "LIQUIFI: INVALID TOKEN OUT");
@@ -358,10 +359,10 @@ contract LiquifiPoolRegister is PoolRegister  {
 
         (address tokenA, address tokenB) = properOrder(tokenIn, tokenOut) ? (tokenIn, tokenOut) : (tokenOut, tokenIn);
 		address pool = factory.findPool(tokenA, tokenB);
-        require(pool != address(0), "LIQIFI: INVALID_DISTRIBUTION_POOL");
+        require(pool != address(0), "LIQIFI: INVALID DISTRIBUTION POOL");
 
 		DistributionPool memory distributionPool = distributionPools[pool];
-        require(distributionPool.owner == address(0), "LIQIFI: DPOOL_ALREADY_EXISTS");
+        require(distributionPool.owner == address(0), "LIQIFI: DPOOL ALREADY EXISTS");
 		
 		distributionPool.owner = msg.sender;
 		distributionPool.tokenIn = tokenIn;
@@ -369,12 +370,13 @@ contract LiquifiPoolRegister is PoolRegister  {
 		distributionPool.balance = initialBalance;
 		distributionPool.minDistributionPrice = minDistributionPrice;
 		distributionPool.coverageRatio = coverageRatio;
+		distributionPool.minDealAmount = minDealAmount;
 		
 		distributionPools[pool] = distributionPool;
     }
 
     function updateDistributionPool(
-        address tokenIn, address tokenOut, uint addedBalance, uint minDistributionPrice, uint8 coverageRatio
+        address tokenIn, address tokenOut, uint addedBalance, uint minDistributionPrice, uint8 coverageRatio, uint minDealAmount
     ) external override {
         require(tokenIn != address(0), "LIQUIFI: INVALID TOKEN IN");
         require(tokenOut != address(0), "LIQUIFI: INVALID TOKEN OUT");
@@ -384,14 +386,16 @@ contract LiquifiPoolRegister is PoolRegister  {
 
         (address tokenA, address tokenB) = properOrder(tokenIn, tokenOut) ? (tokenIn, tokenOut) : (tokenOut, tokenIn);
 		address pool = factory.findPool(tokenA, tokenB);
-        require(pool != address(0), "LIQIFI: INVALID_DISTRIBUTION_POOL");
+        require(pool != address(0), "LIQIFI: INVALID DISTRIBUTION_POOL");
 
 		DistributionPool memory distributionPool = distributionPools[pool];
-        require(distributionPool.owner == msg.sender, "LIQIFI: SENDER_IS_NOT_DPOOL_OWNER");
+        require(distributionPool.owner == msg.sender, "LIQIFI: SENDER IS NOT DPOOL OWNER");
+        require(distributionPool.tokenIn == tokenIn, "LIQIFI: INVALID TOKEN ORDER IN DPOOL");
 		
 		distributionPools[pool].balance += addedBalance;
 		distributionPools[pool].minDistributionPrice = minDistributionPrice;
 		distributionPools[pool].coverageRatio = coverageRatio;
+		distributionPools[pool].minDealAmount = minDealAmount;
     }
 	
     function removeDistributionPool(
@@ -405,7 +409,7 @@ contract LiquifiPoolRegister is PoolRegister  {
         require(pool != address(0), "LIQIFI: INVALID_DISTRIBUTION_POOL");
 
 		DistributionPool memory distributionPool = distributionPools[pool];
-        require(distributionPool.owner == msg.sender, "LIQIFI: SENDER_IS_NOT_DPOOL_OWNER");
+        require(distributionPool.owner == msg.sender, "LIQIFI: SENDER IS NOT DPOOL OWNER");
 		
 		smartTransfer(address(lqf), msg.sender, tokensRequiredToCreateDistributionPool);
 		if(distributionPool.balance > 0)
@@ -414,13 +418,32 @@ contract LiquifiPoolRegister is PoolRegister  {
 		delete distributionPools[pool];
     }
 
+    function withdrawFromDistributionPool(
+        address tokenIn, address tokenOut, uint amountToWithdraw
+    ) external override {
+        require(tokenIn != address(0), "LIQUIFI: INVALID TOKEN IN");
+        require(tokenOut != address(0), "LIQUIFI: INVALID TOKEN OUT");
+
+        (address tokenA, address tokenB) = properOrder(tokenIn, tokenOut) ? (tokenIn, tokenOut) : (tokenOut, tokenIn);
+		address pool = factory.findPool(tokenA, tokenB);
+        require(pool != address(0), "LIQIFI: INVALID_DISTRIBUTION_POOL");
+
+		DistributionPool memory distributionPool = distributionPools[pool];
+        require(distributionPool.owner == msg.sender, "LIQIFI: SENDER IS NOT DPOOL OWNER");
+		
+        require(distributionPool.balance >= amountToWithdraw, "LIQUIFI: INSUFFICIENT DPOOL BALANCE");
+		smartTransfer(tokenIn, msg.sender, amountToWithdraw);
+		
+		distributionPools[pool].balance -= amountToWithdraw;
+    }
+
     function _counterSwap(
         address pool, address tokenIn, uint amountOut, uint minAmountIn, uint timeout
     ) private {
 
 		DistributionPool memory distributionPool = distributionPools[pool];
 
-		if(distributionPool.tokenIn == tokenIn && distributionPool.balance > 0) {
+		if(distributionPool.tokenIn == tokenIn && distributionPool.balance > 0 && amountOut >= distributionPool.minDealAmount) {
 
 			uint availableBalanceIn;
 			uint availableBalanceOut;

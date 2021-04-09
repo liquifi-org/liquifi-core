@@ -8,7 +8,7 @@ import { DelayedExchangePool } from "../interfaces/DelayedExchangePool.sol";
 import { Liquifi } from "../libraries/Liquifi.sol";
 
 contract TestGovernor is LiquifiInitialGovernor {
-    constructor(address _governanceRouter) public LiquifiInitialGovernor(_governanceRouter, 100 * (10 ** 18), 1) {
+    constructor(address _governanceRouter) public LiquifiInitialGovernor(_governanceRouter, 100 * (10 ** 18), 1, address(0)) {
         
     }
 

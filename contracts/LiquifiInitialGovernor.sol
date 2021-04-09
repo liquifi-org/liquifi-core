@@ -4,6 +4,7 @@ pragma solidity = 0.7.0;
 import {LiquifiProposal} from "./LiquifiProposal.sol";
 import {LiquifiDAO} from "./libraries/LiquifiDAO.sol";
 import {GovernanceRouter} from "./interfaces/GovernanceRouter.sol";
+import {PoolFactory} from "./interfaces/PoolFactory.sol";
 import {ERC20} from "./interfaces/ERC20.sol";
 import { DelayedExchangePool } from "./interfaces/DelayedExchangePool.sol";
 import { Liquifi } from "./libraries/Liquifi.sol";
@@ -42,8 +43,10 @@ contract LiquifiInitialGovernor {
 
     ERC20 private immutable govToken;
     GovernanceRouter public immutable governanceRouter;
+	
+	PoolFactory public immutable newPoolFactory;
 
-    constructor(address _governanceRouterAddress, uint _tokensRequiredToCreateProposal, uint _votingPeriod) {
+    constructor(address _governanceRouterAddress, uint _tokensRequiredToCreateProposal, uint _votingPeriod, address _newPoolFactory) {
         tokensRequiredToCreateProposal = _tokensRequiredToCreateProposal;
         votingPeriod = _votingPeriod;
         govToken = GovernanceRouter(_governanceRouterAddress).minter();
@@ -52,6 +55,7 @@ contract LiquifiInitialGovernor {
         if (oldGovernor == address(0)) {
             GovernanceRouter(_governanceRouterAddress).setGovernor(address(this));
         }
+		newPoolFactory = PoolFactory(_newPoolFactory);
     }
 
     function deposit(address user, uint amount, uint unfreezeTime) private {
@@ -170,5 +174,9 @@ contract LiquifiInitialGovernor {
         address tokenA = address(DelayedExchangePool(pool).tokenA());
         address tokenB = address(DelayedExchangePool(pool).tokenB());
         return governanceRouter.poolFactory().findPool(tokenA, tokenB) == pool;
+    }
+
+    function updatePoolFactory() public {
+        governanceRouter.setPoolFactory(newPoolFactory);
     }
 }
