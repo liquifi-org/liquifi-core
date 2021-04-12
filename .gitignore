@@ -8,4 +8,5 @@ coverage.json
 .vscode
 bin
 test-scripts
+build
 /contract-addresses.json

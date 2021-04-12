@@ -486,6 +486,66 @@ describe("Liquifi Pool Register", () => {
 
 	})
 
+	it("should withdraw from an existing distribution pool", async () => {
+		const provider = await liquidityProvider.getAddress()
+		await addLiquidity(token(100000), token(10000));
+
+        await tokenA.connect(liquidityProvider).approve(register.address, token(1100000))
+		expect(
+			await register.connect(liquidityProvider).setupDistributionPool(
+				tokenA.address, tokenB.address, token(1000000), BigNumber.from(1000000), 200, token(100))).to.be.ok;
+
+		expect(await tokenA.balanceOf(provider)).to.eq(token(8800000))
+
+		expect(
+			await register.connect(liquidityProvider).withdrawFromDistributionPool(
+				tokenA.address, tokenB.address, token(100000))).to.be.ok;
+
+		expect(await tokenA.balanceOf(provider)).to.eq(token(8900000))
+
+        const pool = await LiquifiDelayedExchangePoolFactory.connect(await factory.findPool(tokenA.address, tokenB.address), factoryOwner);  
+		const dpool = await register.distributionPools(pool.address);
+		
+		expect(dpool.balance).to.be.eq(token(900000))
+
+	})
+
+	it("cannot withdraw from a distribution pool if not the owner", async () => {
+		await addLiquidity(token(100000), token(10000));
+
+        await tokenA.connect(liquidityProvider).approve(register.address, token(100000))
+		expect(
+			await register.connect(liquidityProvider).setupDistributionPool(
+				tokenA.address, tokenB.address, 0, BigNumber.from(1000000), 200, token(100))).to.be.ok;
+
+		await expect(register.connect(otherTrader).withdrawFromDistributionPool(
+				tokenA.address, tokenB.address, token(1000000))).to.be.revertedWith("LIQIFI: SENDER IS NOT DPOOL OWNER");
+    })
+
+	it("cannot withdraw from a distribution pool if wrong tokens order", async () => {
+		await addLiquidity(token(100000), token(10000));
+
+        await tokenA.connect(liquidityProvider).approve(register.address, token(100000))
+		expect(
+			await register.connect(liquidityProvider).setupDistributionPool(
+				tokenA.address, tokenB.address, 0, BigNumber.from(1000000), 200, token(100))).to.be.ok;
+
+		await expect(register.connect(liquidityProvider).withdrawFromDistributionPool(
+				tokenB.address, tokenA.address, token(1000000))).to.be.revertedWith("LIQIFI: INVALID TOKEN ORDER IN DPOOL");
+    })
+
+	it("cannot withdraw from a distribution pool more than available", async () => {
+		await addLiquidity(token(100000), token(10000));
+
+        await tokenA.connect(liquidityProvider).approve(register.address, token(100000))
+		expect(
+			await register.connect(liquidityProvider).setupDistributionPool(
+				tokenA.address, tokenB.address, 0, BigNumber.from(1000000), 200, token(100))).to.be.ok;
+
+		await expect(register.connect(liquidityProvider).withdrawFromDistributionPool(
+				tokenA.address, tokenB.address, token(1000001))).to.be.revertedWith("LIQUIFI: INSUFFICIENT DPOOL BALANCE");
+    })
+
 	it("cannot setup a new distribution pool that exists", async () => {
 		await addLiquidity(token(100000), token(10000));
 
@@ -512,6 +572,19 @@ describe("Liquifi Pool Register", () => {
 				tokenA.address, tokenB.address, token(1000000), BigNumber.from(100000), 255, token(100))).to.be.revertedWith("LIQIFI: SENDER IS NOT DPOOL OWNER");
     })
 
+	it("cannot update a distribution pool if wrong tokens order", async () => {
+		await addLiquidity(token(100000), token(10000));
+
+        await tokenA.connect(liquidityProvider).approve(register.address, token(100000))
+		expect(
+			await register.connect(liquidityProvider).setupDistributionPool(
+				tokenA.address, tokenB.address, 0, BigNumber.from(1000000), 200, token(100))).to.be.ok;
+
+        await tokenB.connect(liquidityProvider).approve(register.address, token(1000000))
+		await expect(register.connect(liquidityProvider).updateDistributionPool(
+				tokenB.address, tokenA.address, token(1000000), BigNumber.from(100000), 255, token(100))).to.be.revertedWith("LIQIFI: INVALID TOKEN ORDER IN DPOOL");
+    })
+
 	it("cannot remove an existing distribution pool if not the owner", async () => {
 		const provider = await liquidityProvider.getAddress()
 		await addLiquidity(token(100000), token(10000));
@@ -525,6 +598,22 @@ describe("Liquifi Pool Register", () => {
 
 		await expect(register.connect(otherTrader).removeDistributionPool(
 				tokenA.address, tokenB.address)).to.be.revertedWith("LIQIFI: SENDER IS NOT DPOOL OWNER");
+
+	})
+
+	it("cannot remove an existing distribution pool if wrong tokens order", async () => {
+		const provider = await liquidityProvider.getAddress()
+		await addLiquidity(token(100000), token(10000));
+
+        await tokenA.connect(liquidityProvider).approve(register.address, token(1100000))
+		expect(
+			await register.connect(liquidityProvider).setupDistributionPool(
+				tokenA.address, tokenB.address, token(1000000), BigNumber.from(1000000), 200, token(100))).to.be.ok;
+
+		expect(await tokenA.balanceOf(provider)).to.eq(token(8800000))
+
+		await expect(register.connect(liquidityProvider).removeDistributionPool(
+				tokenB.address, tokenA.address)).to.be.revertedWith("LIQIFI: INVALID TOKEN ORDER IN DPOOL");
 
 	})
 
@@ -551,7 +640,7 @@ describe("Liquifi Pool Register", () => {
             tokenB.address, 
             token(10000), 
             tokenA.address, 
-            token(5000),
+            minOutput,
             trader, 
             time0.add(300),
             0,
@@ -567,7 +656,7 @@ describe("Liquifi Pool Register", () => {
 		const counterOrderId = delayedSwapEvents[1].args.orderId
 		const counterAmount = delayedSwapEvents[1].args.amountIn
 		
-		expect(delayedSwapEvents[0].args.minAmountOut).to.be.eq(token(5000));
+		expect(delayedSwapEvents[0].args.minAmountOut).to.be.eq(minOutput);
 		expect(delayedSwapEvents[1].args.minAmountOut).to.be.eq(counterAmount.mul(50000).div(1000000));
 
         await wait(ethers, 400);
@@ -672,6 +761,35 @@ describe("Liquifi Pool Register", () => {
             token(10000), 
             tokenA.address, 
             token(70),
+            trader, 
+            time0.add(300),
+            0,
+            0);
+
+        const delayedSwapEvents = await getDelayedSwapEvent(tx.blockNumber);
+		expect(delayedSwapEvents.length).to.be.eq(1);
+	})
+
+	it("should not do a counter swap when a below the minimum amount", async () => {
+		const provider = await liquidityProvider.getAddress()
+		const trader = await otherTrader.getAddress()
+		await addLiquidity(token(100000), token(10000))
+
+		await tokenA.connect(liquidityProvider).approve(register.address, token(1100000))
+		expect(
+			await register.connect(liquidityProvider).setupDistributionPool(
+				tokenA.address, tokenB.address, token(1000000), BigNumber.from(100001), 200, token(100))).to.be.ok
+				
+		expect(await tokenA.balanceOf(provider)).to.eq(token(8800000))
+		expect(await tokenB.balanceOf(provider)).to.eq(token(9990000))
+
+        const time0 = await lastBlockTimestamp(ethers);
+        await tokenB.connect(otherTrader).approve(register.address, token(99));
+        const tx = await register.connect(otherTrader).delayedSwap(
+            tokenB.address, 
+            token(99), 
+            tokenA.address, 
+            token(1),
             trader, 
             time0.add(300),
             0,

@@ -410,6 +410,7 @@ contract LiquifiPoolRegister is PoolRegister  {
 
 		DistributionPool memory distributionPool = distributionPools[pool];
         require(distributionPool.owner == msg.sender, "LIQIFI: SENDER IS NOT DPOOL OWNER");
+        require(distributionPool.tokenIn == tokenIn, "LIQIFI: INVALID TOKEN ORDER IN DPOOL");
 		
 		smartTransfer(address(lqf), msg.sender, tokensRequiredToCreateDistributionPool);
 		if(distributionPool.balance > 0)
@@ -430,6 +431,7 @@ contract LiquifiPoolRegister is PoolRegister  {
 
 		DistributionPool memory distributionPool = distributionPools[pool];
         require(distributionPool.owner == msg.sender, "LIQIFI: SENDER IS NOT DPOOL OWNER");
+        require(distributionPool.tokenIn == tokenIn, "LIQIFI: INVALID TOKEN ORDER IN DPOOL");
 		
         require(distributionPool.balance >= amountToWithdraw, "LIQUIFI: INSUFFICIENT DPOOL BALANCE");
 		smartTransfer(tokenIn, msg.sender, amountToWithdraw);
