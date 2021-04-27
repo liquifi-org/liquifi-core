@@ -44,12 +44,12 @@ async function deployMinter(governanceRouterAddress: string) {
     return liquifiMinter.address
 }
 
-async function deployGovernor(governanceRouterAddress: string) {
+async function deployGovernor(governanceRouterAddress: string, factoryAddress: string) {
     const LiquifiInitialGovernor = await ethers.getContractFactory("LiquifiInitialGovernor");
     //var options = { gasLimit: 7000000 };
     const tokensRequiredToCreateProposal = BigNumber.from(10).pow(18).mul(20000); // 20 000 tokens
     const votingPeriod = 48; // hours
-    const liquifiInitialGovernor = await LiquifiInitialGovernor.deploy(governanceRouterAddress, tokensRequiredToCreateProposal, votingPeriod);
+    const liquifiInitialGovernor = await LiquifiInitialGovernor.deploy(governanceRouterAddress, tokensRequiredToCreateProposal, votingPeriod, factoryAddress);
     await liquifiInitialGovernor.deployed();
     console.log("LiquiFi Governor address:", liquifiInitialGovernor.address);
     ADDR['governor'] = liquifiInitialGovernor.address
@@ -80,8 +80,8 @@ async function main() {
     const governanceRouter = await deployGovernanceRouter(wethAddress[network.name]);
     await deployActivityMeter(governanceRouter);
     await deployMinter(governanceRouter);
-    await deployFactory(governanceRouter);
-    await deployGovernor(governanceRouter);
+    const factory = await deployFactory(governanceRouter);
+    await deployGovernor(governanceRouter, factory);
     await deployRegister(governanceRouter);
     try {
       fs.writeFileSync('contract-addresses.json', JSON.stringify(ADDR))
