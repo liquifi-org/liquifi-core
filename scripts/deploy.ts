@@ -9,7 +9,8 @@ var ADDR = {
   'minter': '',
   'governor': '',
   'register': '',
-  'factory': ''
+  'factory': '',
+  'bonusProxy': ''
 }
 
 async function deployGovernanceRouter(wethAddress: string) {
@@ -75,6 +76,14 @@ async function deployRegister(governanceRouterAddress: string) {
     return liquifiPoolRegister.address
 }
 
+async function deployActivityMeterBonusProxy(activityMeterAddress: string, lqfPoolAddress: string, lqfAddress: string) {
+    const LiquifiActivityMeterBonusProxy = await ethers.getContractFactory("LiquifiActivityMeterBonusProxy");
+    const liquifiActivityMeterBonusProxy = await LiquifiActivityMeterBonusProxy.deploy(activityMeterAddress, lqfPoolAddress, lqfAddress);
+    await liquifiActivityMeterBonusProxy.deployed();
+    console.log("LiquiFi Activity Meter Bonus Proxy address:", liquifiActivityMeterBonusProxy.address);
+    ADDR['bonusProxy'] = liquifiActivityMeterBonusProxy.address
+    return liquifiActivityMeterBonusProxy.address
+}
 
 async function main() {
     const governanceRouter = await deployGovernanceRouter(wethAddress[network.name]);

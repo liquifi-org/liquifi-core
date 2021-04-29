@@ -575,7 +575,7 @@ describe("Liquifi Activity Meter", () => {
 		expect((await bonusProxy.userBonusSummary(userAddress)).ethLockedPeriod).to.be.eq(3);
 		expect((await bonusProxy.userBonusSummary(userAddress)).ethLocked).to.be.gt(0);
 		
-        for(var i = 5; i <= 11; i++) {
+        for(var i = 5; i <= 12; i++) {
 			await wait(60);
 			expect(await bonusProxy.bonusPayable(userAddress, i)).to.be.gt(0);
 			expect(await bonusProxy.totalBonus(i - 2)).to.be.eq(await bonusProxy.bonusPayable(userAddress, i));
@@ -593,12 +593,12 @@ describe("Liquifi Activity Meter", () => {
 		lqfToBeMinted = await minter.userTokensToClaim(userAddress);
 		expect(lqfToBeMinted).to.be.gt(0);
 
-		expect(await bonusProxy.bonusPayable(userAddress, 12)).to.be.eq(0);
+		expect(await bonusProxy.bonusPayable(userAddress, 13)).to.be.eq(0);
 
 		var lqfBalanceOld = await minter.balanceOf(userAddress);
         expect(await bonusProxy.connect(liquidityProvider).actualizeUserPools()).to.be.ok;
 		
-		expect((await bonusProxy.userBonusSummary(userAddress)).ethLockedPeriod).to.be.eq(11);
+		expect((await bonusProxy.userBonusSummary(userAddress)).ethLockedPeriod).to.be.eq(12);
 		expect((await bonusProxy.userBonusSummary(userAddress)).ethLocked).to.be.gt(0);
 		
 		expect((await minter.balanceOf(userAddress)).sub(lqfBalanceOld)).to.be.eq(lqfToBeMinted);
@@ -691,6 +691,81 @@ describe("Liquifi Activity Meter", () => {
 		await minter.connect(liquidityProvider).transfer(bonusProxy.address, token(2000000));
 		
 		await expect(bonusProxy.connect(liquidityProvider).withdraw(userAddress, token(2000000))).to.be.revertedWith("Only owner can do this");
+	});
+
+    it("should not transfer bonus twice", async function done() {
+		this.timeout(100000);
+
+        const factory = await LiquifiPoolFactoryFactory.connect(await register.factory(), factoryOwner);
+        const { _timeZero, _miningPeriod }  = await governanceRouter.schedule();
+        
+        await addLiquidity(token(1), token(100)); // total supply = 10
+        const poolAddress = await factory.findPool(tokenA.address, tokenB.address);
+        const userAddress = await liquidityProvider.getAddress();
+        const pool = await LiquifiDelayedExchangePoolFactory.connect(poolAddress, factoryOwner);  
+        expect(await pool.balanceOf(userAddress)).to.be.eq(token(10).sub(1000));
+
+        await pool.connect(liquidityProvider).approve(activityMeter.address, token(8));
+        expect(await activityMeter.connect(liquidityProvider).deposit(poolAddress, token(1))).to.be.ok;
+
+        expect(await activityMeter.userPoolsLength(userAddress)).to.be.eq(1);
+        expect(await activityMeter.userPools(userAddress, 0)).to.be.eq(poolAddress);
+
+        await wait(70);
+        expect(await activityMeter.connect(liquidityProvider).actualizeUserPools()).to.be.ok;
+        await wait(60);
+        expect(await activityMeter.connect(liquidityProvider).actualizeUserPools()).to.be.ok;
+		expect(await minter.balanceOf(userAddress)).to.be.eq(token(2500000));
+		
+        await addLQFLiquidity(token(1), token(100));
+        const lqfPoolAddress = await factory.findPool(tokenA.address, minter.address);
+
+        const lqfPool = await LiquifiDelayedExchangePoolFactory.connect(lqfPoolAddress, factoryOwner);  
+        expect(await lqfPool.balanceOf(userAddress)).to.be.eq(token(10).sub(1000));
+
+        await lqfPool.connect(liquidityProvider).approve(activityMeter.address, token(8));
+        expect(await activityMeter.connect(liquidityProvider).deposit(lqfPoolAddress, token(1))).to.be.ok;
+
+        expect(await activityMeter.userPoolsLength(userAddress)).to.be.eq(2);
+        expect(await activityMeter.userPools(userAddress, 1)).to.be.eq(lqfPoolAddress);
+
+        const bonusProxy = await deployContract(factoryOwner, LiquifiActivityMeterBonusProxyArtifact, [activityMeter.address, lqfPoolAddress, minter.address]) as 		
+				LiquifiActivityMeterBonusProxy;
+
+		await minter.connect(liquidityProvider).transfer(bonusProxy.address, token(2000000));
+
+		expect(await bonusProxy.bonusPayable(userAddress, 3)).to.be.eq(0);
+		expect(await bonusProxy.totalBonus(1)).to.be.eq(0);
+
+        await wait(60);
+		expect(await bonusProxy.bonusPayable(userAddress, 4)).to.be.eq(0);
+		expect(await bonusProxy.totalBonus(2)).to.be.eq(0);
+		var lqfToBeMinted = await minter.userTokensToClaim(userAddress);
+		expect(lqfToBeMinted).to.be.gt(0);
+        expect(await bonusProxy.connect(liquidityProvider).actualizeUserPools()).to.be.ok;
+		await minter.connect(liquidityProvider).transfer(bonusProxy.address, token(2000000));
+		
+		expect((await bonusProxy.userBonusSummary(userAddress)).ethLockedPeriod).to.be.eq(3);
+		expect((await bonusProxy.userBonusSummary(userAddress)).ethLocked).to.be.gt(0);
+		
+        expect(await activityMeter.connect(liquidityProvider).withdraw(poolAddress, token(1))).to.be.ok;
+		
+        await wait(60);
+		expect(await bonusProxy.bonusPayable(userAddress, 5)).to.be.gt(0);
+		expect(await bonusProxy.totalBonus(3)).to.be.eq(await bonusProxy.bonusPayable(userAddress, 5));
+		lqfToBeMinted = await minter.userTokensToClaim(userAddress);
+		expect(lqfToBeMinted).to.be.gt(0);
+        expect(await bonusProxy.connect(liquidityProvider).actualizeUserPools()).to.be.ok;
+		await minter.connect(liquidityProvider).transfer(bonusProxy.address, token(2000000));
+		
+		expect((await bonusProxy.userBonusSummary(userAddress)).ethLockedPeriod).to.be.eq(4);
+		expect((await bonusProxy.userBonusSummary(userAddress)).ethLocked).to.be.gt(0);
+		
+		var lqfBalanceOld = await minter.balanceOf(userAddress);
+        expect(await bonusProxy.connect(liquidityProvider).actualizeUserPools()).to.be.ok;
+		expect(await minter.balanceOf(userAddress)).to.be.eq(lqfBalanceOld);
+		expect((await bonusProxy.userBonusSummary(userAddress)).ethLockedPeriod).to.be.eq(4);
+		expect((await bonusProxy.userBonusSummary(userAddress)).ethLocked).to.be.gt(0);
 	});
 
     const wait = async (seconds: number) => {

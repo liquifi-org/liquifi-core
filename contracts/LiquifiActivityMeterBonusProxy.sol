@@ -13,7 +13,7 @@ contract LiquifiActivityMeterBonusProxy {
 	address immutable public lqfPoolAddress;
 	address immutable owner;
 	
-	uint immutable public maxPeriod = 11;
+	uint immutable public maxPeriod = 12;
 
     struct UserBonusSummary {
         uint ethLocked;
